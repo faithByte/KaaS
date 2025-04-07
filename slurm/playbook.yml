@@ -1,0 +1,27 @@
+- name: Download Kubernetes
+  hosts: all
+  tasks:
+  - name: Update
+    ansible.builtin.apt:
+      update_cache: yes
+
+- name: Setup manapy
+  hosts: all
+  roles:
+    - manapy
+
+- name: Setup manapy
+  hosts: master
+  roles:
+    - nfs-server
+
+- name: Setup manapy
+  hosts: nodes
+  roles:
+    - nfs-client
+
+- name: Setup cluster
+  hosts: all
+  roles:
+    - munge
+    - slurm

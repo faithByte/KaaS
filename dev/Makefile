@@ -28,6 +28,9 @@ check:
 run:
 	@cd ../project && ansible-playbook $(PLAYBOOK);
 
+slurm:
+	@cd ../slurm && ansible-playbook $(PLAYBOOK);
+
 # task:
 # 	@cd ../project && ansible-playbook $(PLAYBOOK) --start-at-task="$(TASK)"
 
