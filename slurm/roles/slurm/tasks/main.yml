@@ -150,28 +150,27 @@
     mode: 1755
     state: directory
 
-- name: Enable & start munge
-  ansible.builtin.systemd:
-    name: munge
-    state: restarted
+# - name: Enable & start munge
+#   ansible.builtin.systemd:
+#     name: munge
+#     state: restarted
 
-- name: Enable & start slurmctld on controller nodes
-  ansible.builtin.systemd:
-    name: slurmctld
-    enabled: yes
-    state: restarted
-  when: inventory_hostname in groups['masters']
+# - name: Enable & start slurmctld on controller nodes
+#   ansible.builtin.systemd:
+#     name: slurmctld
+#     enabled: yes
+#     state: restarted
+#   when: inventory_hostname in groups['masters']
 
-- name: Enable & start slurmd on compute nodes
-  ansible.builtin.systemd:
-    name: slurmd
-    enabled: yes
-    state: restarted
-  when: inventory_hostname in groups['workers']
+# - name: Enable & start slurmd on compute nodes
+#   ansible.builtin.systemd:
+#     name: slurmd
+#     enabled: yes
+#     state: restarted
+#   when: inventory_hostname in groups['workers']
 
 
 - name: Add slurm commands to PATH
   ansible.builtin.shell: |
-    echo PATH=/usr/local/slurm/bin/:$PATH >> /etc/profile.d/bash_completion.sh
+    echo "export PATH=/usr/local/slurm/bin/:$PATH" >> /etc/profile.d/bash_completion.sh
   when: inventory_hostname in groups['masters']
-# export PATH=/usr/local/slurm/bin/:$PATH

@@ -1,0 +1,136 @@
+---
+- name: Add slurmd services
+  ansible.builtin.copy:
+    src: "/slurm-{{ SLURM_VERSION }}/etc/slurmdbd.service"
+    dest:  /usr/lib/systemd/system/
+
+
+- name: Edit slurm.conf
+  lineinfile:
+    path: "/slurm-{{ SLURM_VERSION }}/etc/slurmdbd.conf.example"
+    regexp: '{{ item.old }}='
+    line: "{{ item.new }}"
+    backrefs: yes
+  with_items:
+    - { new: AuthInfo=/var/run/munge/munge.socket.2, old: AuthInfo }
+    - { new: DbdAddr=master , old: DbdAddr }
+    - { new: DbdHost=master, old: DbdHost }
+    - { new: DbdPort=6819, old: DbdPort }
+    - { new: StorageHost=localhost, old: StorageHost }
+    - { new: StoragePort=3306, old: StoragePort }
+    - { new: StoragePass=1234 , old: StoragePass }
+    - { new: StoragePort=3306, old: StoragePort }
+    - { new: StorageLoc=slurm_acct_db, old: StorageLoc }
+
+- name: Add slurm configuration files
+  ansible.builtin.copy:
+    src: "/slurm-{{ SLURM_VERSION }}/etc/slurmdbd.conf.example"
+    dest:  "/usr/local/slurm/etc/slurmdbd.conf"
+
+- name: 
+  ansible.builtin.apt:
+    pkg: mariadb-server
+    state: present
+
+- name: Create db configuration file
+  ansible.builtin.file:
+    path: "{{ item.name }}"
+    state: "{{ item.type }}"
+  with_items:
+    - { name: /etc/my.cnf.d, type: directory }
+    - { name: /etc/my.cnf.d/innodb.cnf, type: touch }
+
+- name: Change db configuration
+  ansible.builtin.blockinfile:
+    path: /etc/my.cnf.d/innodb.cnf
+    block: |
+      [mysqld]
+      innodb_buffer_pool_size=1024M
+      innodb_log_file_size=64M
+      innodb_lock_wait_timeout=900
+
+- name: Enable & start mariadb
+  ansible.builtin.systemd:
+    name: mariadb
+    enabled: yes
+    state: restarted
+
+- name: Install mysqlclient for ansible
+  ansible.builtin.pip:
+    name: mysqlclient 
+    state: present
+    extra_args: --break-system-packages
+
+- name: Ensure MySQL user for Slurm exists
+  mysql_user:
+    name: slurm
+    password: "{{ StoragePass }}"
+    priv: "slurm_acct_db.*:ALL,GRANT"
+    append_privs: no
+    host: localhost
+    login_user: root
+    login_password: "{{ MySQLRootPass }}"
+    state: present
+
+- name: Ensure database for Slurm exists
+  mysql_db:
+    name: "slurm_acct_db"
+    login_user: root
+    login_password: "{{ MySQLRootPass }}"
+    state: present
+
+- name: Create slurmdbd.log file
+  file:
+    path: "{{ item }}"
+    state: touch
+  loop:
+    - /var/log/slurmdbd.log
+    - /usr/local/slurm/etc/slurmdbd.conf
+
+- name: Edit slurm.conf
+  lineinfile:
+    path: /usr/local/slurm/etc/slurm.conf
+    regexp: '{{ item.old }}='
+    line: "{{ item.new }}"
+    backrefs: yes
+  with_items:
+    - { new: AccountingStorageType=accounting_storage/slurmdbd, old: AccountingStorageType }
+    - { new: AccountingStorageHost=master, old: AccountingStorageHost }
+    - { new: AccountingStoragePort=6819, old: AccountingStoragePort }
+    - { new: AccountingStoragePass=/var/run/munge/munge.socket.2, old: AccountingStoragePass }
+    - { new: AccountingStorageUser=slurm, old: AccountingStorageUser }
+
+- name: Create slurmdb log dir
+  file:
+    path: "/var/log/slurm/"
+    state: directory
+
+- name: Create slurmdb log file
+  file:
+    path: "/var/log/slurm/slurmdbd.log"
+    state: touch
+
+- name: Change ownership of slurm files
+  file:
+    path: "{{ item }}"
+    owner: slurm
+    group: slurm
+    state: file
+  loop:
+    - /usr/local/slurm/etc/slurmdbd.conf
+    - /var/log/slurmdbd.log
+
+- name: Set permissions on slurmdb conf file
+  file:
+    path: "/usr/local/slurm/etc/slurmdbd.conf"
+    mode: 0600
+    state: file
+
+# - name: Enable & start slurmdbd
+#   systemd:
+#     name: "{{ item }}"
+#     enabled: yes
+#     state: restarted
+#   with_items:
+#     - slurmdbd
+#     - slurmctld

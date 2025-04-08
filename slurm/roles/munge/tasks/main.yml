@@ -14,7 +14,7 @@
   when: inventory_hostname == groups['masters'][0]
 
 - name: Change ownership of munge directories
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     owner: munge
     group: munge
@@ -27,7 +27,7 @@
     - /run/munge/
 
 - name: Set permissions on munge directories
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     mode: 0700
     state: directory
@@ -38,7 +38,7 @@
     - /var/lib/munge
 
 - name: Set permissions on munge directories
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     mode: 1755
     state: directory
