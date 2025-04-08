@@ -1,0 +1,70 @@
+- name: Download Kubernetes
+  hosts: all
+  tasks:
+  - name: Update
+    ansible.builtin.apt:
+      update_cache: yes
+
+- name: Setup manapy
+  hosts: all
+  roles:
+    - manapy
+
+- name: Setup manapy
+  hosts: master
+  roles:
+    - nfs-server
+
+- name: Setup manapy
+  hosts: nodes
+  roles:
+    - nfs-client
+
+- name: Setup cluster
+  hosts: all
+  roles:
+    - munge
+    - slurm
+
+- name: Setup cluster
+  hosts: masters
+  roles:
+    - slurmdb
+
+- name: Setup slurm conf
+  hosts: all
+  tasks:
+    - name: Update slurm.conf
+      ansible.posix.synchronize:
+        src: /usr/local/slurm/etc/slurm.conf
+        dest: /usr/local/slurm/etc/slurm.conf
+      when: inventory_hostname != groups['masters'][0]
+      delegate_to: "{{ groups['masters'][0] }}"
+
+    - name: Enable & start munge
+      systemd:
+        name: munge
+        enabled: yes
+        state: restarted
+
+- name: Setup slurmd
+  hosts: workers
+  tasks:
+    - name: Enable & start slurmd
+      systemd:
+        name: slurmd
+        enabled: yes
+        state: restarted
+
+
+- name: Setup slurmctl
+  hosts: masters
+  tasks:
+    - name: Enable & start slurmctld/dbd
+      systemd:
+        name: "{{ item }}"
+        enabled: yes
+        state: restarted
+      with_items:
+        - slurmdbd
+        - slurmctld

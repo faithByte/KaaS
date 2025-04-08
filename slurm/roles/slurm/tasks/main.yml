@@ -1,0 +1,176 @@
+---
+- name: Delete
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '{{ inventory_hostname }}'
+    state: absent
+
+- name: Add IPs to hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: "{{ hostvars[item].ansible_host }} {{ hostvars[item].inventory_hostname }}"
+    state: present
+    create: yes
+  loop: "{{ groups['all'] }}"
+
+- name: Download installation dependencies
+  ansible.builtin.apt:
+    pkg: "{{ item }}"
+    state: present
+  with_items:
+    - build-essential
+    - fakeroot
+    - devscripts
+    - equivs
+
+- name: Get slurm archive
+  ansible.builtin.get_url:
+    url: "https://download.schedmd.com/slurm/slurm-{{ SLURM_VERSION }}.tar.bz2"
+    dest: "/slurm-{{ SLURM_VERSION }}.tar.bz2"
+    force: true
+
+- name: Install slurm
+  ansible.builtin.shell: |
+    tar -xaf /slurm-{{ SLURM_VERSION }}.tar.bz2 -C /
+    cd /slurm-{{ SLURM_VERSION }}
+    echo y | mk-build-deps -i debian/control
+    debuild -b -uc -us
+
+- name: Build slurm
+  ansible.builtin.shell: |
+    cd /slurm-{{ SLURM_VERSION }}
+    ./configure --prefix=/usr/local/slurm
+    make install
+    ldconfig -n /usr/lib64
+
+- name: DCreate slurm users
+  ansible.builtin.shell: |
+    export SLURMUSER=1001
+    groupadd -g $SLURMUSER slurm
+    useradd  -m -d /nonexistent -u $SLURMUSER -g slurm -s /usr/sbin/nologin slurm
+
+- name: Edit slurmctld service
+  ansible.builtin.replace:
+    path: /slurm-{{ SLURM_VERSION }}/etc/slurmctld.service
+    regexp: "{{ item.old }}"
+    replace: "{{ item.new }}"
+    # backrefs: yes
+  with_items:
+    - { old: '^Type=\S+', new: 'Type=simple' }
+    - { old: '^ConditionPathExists=\S+', new: 'ConditionPathExists=/usr/local/slurm/etc/slurm.conf'}
+    - { old: '--systemd', new: '-D -s'}
+
+- name: Edit slurmd service
+  ansible.builtin.replace:
+    path: /slurm-{{ SLURM_VERSION }}/etc/slurmd.service
+    regexp: "{{ item.old }}"
+    replace: "{{ item.new }}"
+  with_items:
+    - { old: '^Type=\S+', new: 'Type=simple' }
+    - { old: '^ConditionPathExists=\S+', new: 'ConditionPathExists=/usr/local/slurm/etc/slurm.conf' }
+    - { old: '--systemd', new: '-D -s' }
+
+- name: Set ClusterName
+  ansible.builtin.lineinfile:
+    path: /slurm-{{ SLURM_VERSION }}/etc/slurm.conf.example
+    regexp: '^ClusterName=\S+'
+    line: "ClusterName={{ CLUSTER_NAME }}"
+    backrefs: yes
+
+- name: Set SlurmctldHost
+  ansible.builtin.lineinfile:
+    path: /slurm-{{ SLURM_VERSION }}/etc/slurm.conf.example
+    regexp: '^SlurmctldHost=\S+'
+    line: "SlurmctldHost={{ groups['masters'][0] }}"
+    backrefs: yes
+
+- name: 
+  ansible.builtin.lineinfile:
+    path: /slurm-{{ SLURM_VERSION }}/etc/slurm.conf.example
+    regexp: '^{{ item }}.*'
+    state: absent
+  with_items:
+    # - PartitionName=
+    - NodeName=
+
+- name: Add slurmd services
+  ansible.builtin.copy:
+    src: "/slurm-{{ SLURM_VERSION }}/etc/{{ item.service }}.service"
+    dest:  /usr/lib/systemd/system/
+  when: inventory_hostname in groups[item.group]
+  with_items:
+    - { group: workers, service: slurmd }
+    - { group: masters, service: slurmctld }
+
+- name: Create slurm etc folder
+  ansible.builtin.file:
+    path: /usr/local/slurm/etc/
+    state: directory
+    owner: slurm
+    group: slurm
+
+- name: Add slurm configuration files
+  ansible.builtin.copy:
+    src: "/slurm-{{ SLURM_VERSION }}/etc/{{ item }}.conf.example"
+    dest:  "/usr/local/slurm/etc/{{ item }}.conf"
+  with_items:
+    - slurm
+    - cgroup
+
+- name: Set permissions on slurm directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    mode: 0777
+    state: directory
+    # recurse: yes
+  with_items:
+    - /var/spool/
+    - /var/run/
+
+- name: Get nodes data
+  ansible.builtin.shell:
+    cmd: /usr/local/slurm/sbin/slurmd -C | head -n 1
+  register: nodes_data
+  when: inventory_hostname in groups['workers']
+
+- name: Set nodes data
+  ansible.builtin.set_fact:
+    nodes_data: "{{ nodes_data.stdout }}"
+  when: inventory_hostname in groups['workers']
+
+- name: Add nodes data to config files
+  ansible.builtin.lineinfile:
+    path: /usr/local/slurm/etc/slurm.conf
+    line: "{{ hostvars[item].nodes_data }}"
+  loop: "{{ groups['workers'] }}"
+
+- name: Set permissions on munge directories
+  file:
+    path: "/run"
+    mode: 1755
+    state: directory
+
+# - name: Enable & start munge
+#   ansible.builtin.systemd:
+#     name: munge
+#     state: restarted
+
+# - name: Enable & start slurmctld on controller nodes
+#   ansible.builtin.systemd:
+#     name: slurmctld
+#     enabled: yes
+#     state: restarted
+#   when: inventory_hostname in groups['masters']
+
+# - name: Enable & start slurmd on compute nodes
+#   ansible.builtin.systemd:
+#     name: slurmd
+#     enabled: yes
+#     state: restarted
+#   when: inventory_hostname in groups['workers']
+
+
+- name: Add slurm commands to PATH
+  ansible.builtin.shell: |
+    echo "export PATH=/usr/local/slurm/bin/:$PATH" >> /etc/profile.d/bash_completion.sh
+  when: inventory_hostname in groups['masters']

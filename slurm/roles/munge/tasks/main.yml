@@ -1,0 +1,61 @@
+---
+- name: Install dependencies
+  ansible.builtin.apt:
+    pkg: "{{ item }}"
+    state: present
+  with_items:
+    - munge
+    - libmunge2
+    - libmunge-dev
+
+- name: Generate munge key
+  ansible.builtin.shell:
+    cmd: /usr/sbin/mungekey -f
+  when: inventory_hostname == groups['masters'][0]
+
+- name: Change ownership of munge directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: munge
+    group: munge
+    state: directory
+    recurse: yes
+  with_items:
+    - /etc/munge/
+    - /var/log/munge/
+    - /var/lib/munge/
+    - /run/munge/
+
+- name: Set permissions on munge directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    mode: 0700
+    state: directory
+    recurse: yes
+  with_items:
+    - /etc/munge/
+    - /var/log/munge/
+    - /var/lib/munge
+
+- name: Set permissions on munge directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    mode: 1755
+    state: directory
+    # recurse: yes
+  with_items:
+    - /run
+    - /run/munge
+
+- name: Get munge key
+  ansible.posix.synchronize:
+    src: /etc/munge/munge.key
+    dest: /etc/munge/munge.key
+  when: inventory_hostname != groups['masters'][0]
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Enable & start munge
+  ansible.builtin.systemd:
+    name: munge
+    enabled: yes
+    state: restarted

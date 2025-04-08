@@ -1,0 +1,29 @@
+---
+- name: Download firewall
+  ansible.builtin.apt:
+    pkg: ufw
+    state: present
+
+- name: Deny policy
+  community.general.ufw:
+    policy: deny
+
+- name: Configure to accept ssh
+  community.general.ufw:
+    rule: allow
+    port: ssh
+    proto: tcp
+  with_items:
+    - ssh
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+  async: 10
+  poll: 5
+    
+- name: Enable & start firewall [ufw]  
+  ansible.builtin.systemd:
+    name: ufw
+    enabled: yes
+    state: restarted

@@ -1,0 +1,62 @@
+---
+- name: Install dependencies
+  ansible.builtin.apt:
+    pkg: "{{ item }}"
+    state: present
+  with_items:
+    - pip
+    - libmpich12
+    - libmpich-dev 	
+    - libopenmpi3
+    - libopenmpi-dev
+
+- name: Install dependencies
+  ansible.builtin.pip:
+    name: "{{ item }}"
+    state: latest
+    extra_args: --break-system-packages
+  with_items:
+      - pip
+      - setuptools
+      - wheel
+      - Cython
+      - pytest
+
+- name: Clone manapy
+  ansible.builtin.git:
+    repo: https://github.com/imadki/manapy.git
+    dest: /manapy
+
+- name: Install manapy
+  ansible.builtin.pip:
+    name: /manapy 
+    state: present
+    extra_args: --break-system-packages
+
+- name: Remove installation dependencies
+  ansible.builtin.apt:
+    pkg: "{{ item }}"
+    state: absent
+  with_items:
+    - libmpich-dev  	
+    - libopenmpi-dev
+
+# - name: Install petsc-dev
+#   ansible.builtin.apt:
+#     pkg: petsc-dev
+#     state: present
+
+# - name: Install petsc
+#   ansible.builtin.pip:
+#     name: "{{ item }}"
+#     state: latest
+#     extra_args: --break-system-packages
+#   with_items:
+#       - petsc
+#       - petsc4py
+
+- name: Set MESH_DIR 
+  ansible.builtin.lineinfile:
+    path: /etc/environment
+    line: export MESH_DIR=/manapy/mesh
+    state: present
