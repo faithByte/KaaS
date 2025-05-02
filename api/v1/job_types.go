@@ -17,31 +17,43 @@ limitations under the License.
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// JobSpec defines the desired state of Job.
-type JobSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of Job. Edit job_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+type NeedsData struct {
+	Ntasks        int `json:"ntasks,omitempty"`
+	CpusPerTask   int `json:"cpus-per-task,omitempty"`
+	Nodes         int `json:"nodes,omitempty"`
+	NtasksPerNode int `json:"ntasks-per-node,omitempty"`
 }
 
-// JobStatus defines the observed state of Job.
+type StepData struct {
+	Name         string            `json:"name"`
+	// +kubebuilder:validation:Enum=shared_mem;distributed_mem;hybrid_mem
+	Type         string            `json:"type"`
+	Image        string            `json:"image"`
+	Needs        NeedsData         `json:"needs,omitempty"`
+	Command      string            `json:"command"`
+	Environment  []corev1.EnvVar	`json:"environment,omitempty"`
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+}
+
+type JobSpec struct {
+	Steps []StepData `json:"steps"`
+	// Conditions	[]ConditionData	`json:"conditions,omitempty"`
+	// Automata	[]AutomataData	`json:"automata,omitempty"`
+}
+
 type JobStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Phase   string `json:"phase,omitempty"`
+	PodName string `json:"PodName,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="STATUS",type=string,JSONPath=".status.phase"
 
-// Job is the Schema for the jobs API.
 type Job struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -52,7 +64,6 @@ type Job struct {
 
 // +kubebuilder:object:root=true
 
-// JobList contains a list of Job.
 type JobList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
