@@ -2,19 +2,19 @@
 # This file is used to track the info used to scaffold your project
 # and allow the plugins properly work.
 # More info: https://book.kubebuilder.io/reference/project-config.html
-domain: faithbyte.kaas
+domain: kaas
 layout:
 - go.kubebuilder.io/v4
-projectName: kaas
-repo: github.com/faithByte/KaaS
+projectName: kaas-controller
+repo: github.com/faithByte/kaas
 resources:
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: faithbyte.kaas
-  group: kaas
+  domain: kaas
+  group: faithbyte
   kind: Job
-  path: github.com/faithByte/KaaS/api/v1
+  path: github.com/faithByte/kaas/api/v1
   version: v1
 version: "3"

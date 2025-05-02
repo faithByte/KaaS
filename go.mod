@@ -1,4 +1,4 @@
-module github.com/faithByte/KaaS
+module github.com/faithByte/kaas
 
 go 1.23.0
 
