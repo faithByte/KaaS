@@ -1,9 +1,0 @@
-apiVersion: kaas.faithbyte.kaas/v1
-kind: Job
-metadata:
-  labels:
-    app.kubernetes.io/name: kaas
-    app.kubernetes.io/managed-by: kustomize
-  name: job-sample
-spec:
-  # TODO(user): Add fields here
