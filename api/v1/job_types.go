@@ -54,10 +54,17 @@ type AutomataData struct {
 	Loop	[]LoopData			`json:"loop,omitempty"`
 }
 
+// CONDITION
+type ConditionData struct {
+	Name         string            `json:"name"`
+	Image        string            `json:"image"`
+	Command      string            `json:"command"`
+}
+
 // JOB - SPEC
 type JobSpec struct {
 	Step		[]StepData		`json:"step"`
-	// Conditions	ConditionData	`json:"conditions,omitempty"`
+	Condition	[]ConditionData	`json:"condition,omitempty"`
 	Automata	AutomataData	`json:"automata,omitempty"`
 }
 

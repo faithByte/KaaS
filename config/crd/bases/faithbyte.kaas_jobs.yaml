@@ -44,7 +44,7 @@ spec:
             description: JOB - SPEC
             properties:
               automata:
-                description: "Conditions\tConditionData\t`json:\"conditions,omitempty\"`"
+                description: AUTOMATA
                 properties:
                   loop:
                     items:
@@ -69,6 +69,22 @@ spec:
                       type: object
                     type: array
                 type: object
+              condition:
+                items:
+                  description: CONDITION
+                  properties:
+                    command:
+                      type: string
+                    image:
+                      type: string
+                    name:
+                      type: string
+                  required:
+                  - command
+                  - image
+                  - name
+                  type: object
+                type: array
               step:
                 items:
                   description: STEP
