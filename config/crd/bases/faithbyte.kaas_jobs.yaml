@@ -21,6 +21,7 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
+        description: JOB
         properties:
           apiVersion:
             description: |-
@@ -40,9 +41,37 @@ spec:
           metadata:
             type: object
           spec:
+            description: JOB - SPEC
             properties:
-              steps:
+              automata:
+                description: "Conditions\tConditionData\t`json:\"conditions,omitempty\"`"
+                properties:
+                  loop:
+                    items:
+                      description: AUTOMATA - LOOP
+                      properties:
+                        condition:
+                          type: string
+                        name:
+                          type: string
+                        step:
+                          type: string
+                      required:
+                      - condition
+                      - name
+                      - step
+                      type: object
+                    type: array
+                  run:
+                    items:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    type: array
+                type: object
+              step:
                 items:
+                  description: STEP
                   properties:
                     command:
                       type: string
@@ -170,6 +199,7 @@ spec:
                     name:
                       type: string
                     needs:
+                      description: STEP - NEEDS
                       properties:
                         cpus-per-task:
                           type: integer
@@ -198,9 +228,10 @@ spec:
                   type: object
                 type: array
             required:
-            - steps
+            - step
             type: object
           status:
+            description: JOB - STATUS
             properties:
               PodName:
                 type: string

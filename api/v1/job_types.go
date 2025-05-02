@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// STEP - NEEDS
 type NeedsData struct {
 	Ntasks        int `json:"ntasks,omitempty"`
 	CpusPerTask   int `json:"cpus-per-task,omitempty"`
@@ -28,6 +29,7 @@ type NeedsData struct {
 	NtasksPerNode int `json:"ntasks-per-node,omitempty"`
 }
 
+// STEP
 type StepData struct {
 	Name         string            `json:"name"`
 	// +kubebuilder:validation:Enum=shared_mem;distributed_mem;hybrid_mem
@@ -39,12 +41,27 @@ type StepData struct {
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 }
 
-type JobSpec struct {
-	Steps []StepData `json:"steps"`
-	// Conditions	[]ConditionData	`json:"conditions,omitempty"`
-	// Automata	[]AutomataData	`json:"automata,omitempty"`
+// AUTOMATA - LOOP
+type LoopData struct {
+	Name		string	`json:"name"`
+	Condition	string	`json:"condition"`
+	Step		string	`json:"step"`
 }
 
+// AUTOMATA
+type AutomataData struct {
+	Run		[]map[string]string	`json:"run,omitempty"`
+	Loop	[]LoopData			`json:"loop,omitempty"`
+}
+
+// JOB - SPEC
+type JobSpec struct {
+	Step		[]StepData		`json:"step"`
+	// Conditions	ConditionData	`json:"conditions,omitempty"`
+	Automata	AutomataData	`json:"automata,omitempty"`
+}
+
+// JOB - STATUS
 type JobStatus struct {
 	Phase   string `json:"phase,omitempty"`
 	PodName string `json:"PodName,omitempty"`
@@ -54,6 +71,7 @@ type JobStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="STATUS",type=string,JSONPath=".status.phase"
 
+// JOB
 type Job struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
