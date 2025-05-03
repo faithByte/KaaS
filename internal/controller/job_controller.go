@@ -18,16 +18,21 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	faithbytev1 "github.com/faithByte/kaas/api/v1"
+	kaasv1 "github.com/faithByte/kaas/api/v1"
+	corev1 "k8s.io/api/core/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/faithByte/kaas/internal/controller/watchers"
 )
 
-// JobReconciler reconciles a Job object
 type JobReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -37,27 +42,35 @@ type JobReconciler struct {
 // +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobs/finalizers,verbs=update
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the Job object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.20.4/pkg/reconcile
-func (r *JobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = logf.FromContext(ctx)
+var logger = log.Log
 
-	// TODO(user): your logic here
+func (r *JobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger = log.FromContext(ctx)
+
+	fmt.Println("==========RECONCILE=========================")
+
+	var job kaasv1.Job
+	// StepSet := make(map[string]int)
+	// LoopSet := make(map[string]int)
+
+	if err := r.Get(ctx, req.NamespacedName, &job); err != nil {
+		if errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
+	}
+	fmt.Println(len(job.Spec.Step))
+
+	job.Status.Phase = "Creating computes"
+	r.Status().Update(ctx, &job)
+
+	logger.Info("")
 
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager sets up the controller with the Manager.
 func (r *JobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&faithbytev1.Job{}).
-		Named("job").
+		For(&kaasv1.Job{}, builder.WithPredicates(watchers.JobPredicate)).
+		Owns(&corev1.Pod{}, builder.WithPredicates(watchers.PodPredicate)).
 		Complete(r)
 }

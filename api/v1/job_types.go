@@ -31,41 +31,41 @@ type NeedsData struct {
 
 // STEP
 type StepData struct {
-	Name         string            `json:"name"`
+	Name string `json:"name"`
 	// +kubebuilder:validation:Enum=shared_mem;distributed_mem;hybrid_mem
 	Type         string            `json:"type"`
 	Image        string            `json:"image"`
 	Needs        NeedsData         `json:"needs,omitempty"`
 	Command      string            `json:"command"`
-	Environment  []corev1.EnvVar	`json:"environment,omitempty"`
+	Environment  []corev1.EnvVar   `json:"environment,omitempty"`
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 }
 
 // AUTOMATA - LOOP
 type LoopData struct {
-	Name		string	`json:"name"`
-	Condition	string	`json:"condition"`
-	Step		string	`json:"step"`
+	Name      string `json:"name"`
+	Condition string `json:"condition"`
+	Step      string `json:"step"`
 }
 
 // AUTOMATA
 type AutomataData struct {
-	Run		[]map[string]string	`json:"run,omitempty"`
-	Loop	[]LoopData			`json:"loop,omitempty"`
+	Run  []map[string]string `json:"run,omitempty"`
+	Loop []LoopData          `json:"loop,omitempty"`
 }
 
 // CONDITION
 type ConditionData struct {
-	Name         string            `json:"name"`
-	Image        string            `json:"image"`
-	Command      string            `json:"command"`
+	Name    string `json:"name"`
+	Image   string `json:"image"`
+	Command string `json:"command"`
 }
 
 // JOB - SPEC
 type JobSpec struct {
-	Step		[]StepData		`json:"step"`
-	Condition	[]ConditionData	`json:"condition,omitempty"`
-	Automata	AutomataData	`json:"automata,omitempty"`
+	Step      []StepData      `json:"step"`
+	Condition []ConditionData `json:"condition,omitempty"`
+	Automata  AutomataData    `json:"automata,omitempty"`
 }
 
 // JOB - STATUS
