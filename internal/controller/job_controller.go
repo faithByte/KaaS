@@ -30,41 +30,51 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/faithByte/kaas/internal/controller/secrets"
+	"github.com/faithByte/kaas/internal/controller/utils"
 	"github.com/faithByte/kaas/internal/controller/watchers"
 )
+
+// +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobs/finalizers,verbs=update
 
 type JobReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobs,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobs/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobs/finalizers,verbs=update
-
-var logger = log.Log
-
 func (r *JobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger = log.FromContext(ctx)
+	utils.Log = log.FromContext(ctx)
 
 	fmt.Println("==========RECONCILE=========================")
+	data := utils.JobData{
+		// Job
+		Client:  r.Client,
+		Context: ctx,
+		Scheme:  r.Scheme,
+	}
 
-	var job kaasv1.Job
-	// StepSet := make(map[string]int)
-	// LoopSet := make(map[string]int)
-
-	if err := r.Get(ctx, req.NamespacedName, &job); err != nil {
+	// Get job
+	if err := r.Get(ctx, req.NamespacedName, &data.Job); err != nil {
 		if errors.IsNotFound(err) {
+			utils.Log.Error(err, "NO SUCH A JOB")
 			return ctrl.Result{}, err
 		}
 	}
-	fmt.Println(len(job.Spec.Step))
 
-	job.Status.Phase = "Creating computes"
-	r.Status().Update(ctx, &job)
+	data.Job.Status.Phase = "Creating dependencies"
+	r.Status().Update(ctx, &data.Job)
 
-	logger.Info("")
+	if err := secrets.CreateSshSecret(&data); err != nil {
+		utils.Log.Error(err, "COULDN'T CREATE SSH SECRET")
+		return ctrl.Result{}, err
+	}
 
+	// StepSet := make(map[string]int)
+	// LoopSet := make(map[string]int)
+
+	utils.Log.Info("Done")
 	return ctrl.Result{}, nil
 }
 
