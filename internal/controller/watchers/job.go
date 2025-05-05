@@ -2,8 +2,11 @@ package watchers
 
 import (
 	"fmt"
+
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
+	"github.com/faithByte/kaas/internal/controller/utils"
 )
 
 var JobPredicate = predicate.Funcs{
@@ -20,6 +23,7 @@ var JobPredicate = predicate.Funcs{
 
 	DeleteFunc: func(e event.DeleteEvent) bool {
 		fmt.Println("Delete job " + e.Object.GetName())
+		utils.RemoveJob(string(e.Object.GetUID()))
 		return false
 	},
 
