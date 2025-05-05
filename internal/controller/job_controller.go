@@ -30,40 +30,84 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/faithByte/kaas/internal/controller/secrets"
+	"github.com/faithByte/kaas/internal/controller/utils"
 	"github.com/faithByte/kaas/internal/controller/watchers"
 )
+
+// +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobs/finalizers,verbs=update
 
 type JobReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobs,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobs/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobs/finalizers,verbs=update
-
-var logger = log.Log
-
 func (r *JobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger = log.FromContext(ctx)
+	utils.Log = log.FromContext(ctx)
+	var job kaasv1.Job
 
 	fmt.Println("==========RECONCILE=========================")
 
-	var job kaasv1.Job
-	// StepSet := make(map[string]int)
-	// LoopSet := make(map[string]int)
-
+	// Get job
 	if err := r.Get(ctx, req.NamespacedName, &job); err != nil {
 		if errors.IsNotFound(err) {
+			utils.Log.Error(err, "NO SUCH A JOB")
 			return ctrl.Result{}, err
 		}
 	}
-	fmt.Println(len(job.Spec.Step))
 
-	job.Status.Phase = "Creating computes"
-	r.Status().Update(ctx, &job)
+	if (job.Spec.Automata.Run == nil) && (job.Spec.Step == nil) {
+		return ctrl.Result{}, nil
+	}
 
-	logger.Info("")
+	data := utils.JobData{
+		Job:     job,
+		Client:  r.Client,
+		Context: ctx,
+		Scheme:  r.Scheme,
+	}
+
+	uid := string(job.GetUID())
+	if !utils.JobExists(uid) {
+		utils.AddJob(string(job.GetUID()))
+
+		job.Status.Phase = "Creating dependencies"
+		r.Status().Update(ctx, &job)
+
+		if err := secrets.CreateSshSecret(&data); err != nil {
+			utils.Log.Error(err, "COULDN'T CREATE SSH SECRET")
+			return ctrl.Result{}, err
+		}
+
+		if err := secrets.CreateHostfile(&data); err != nil {
+			utils.Log.Error(err, "COULDN'T CREATE HOSTFILE SECRET")
+			return ctrl.Result{}, err
+		}
+	}
+
+	if utils.JobSet[uid].RunIndex >= utils.JobSet[uid].RunLen {
+		job.Status.Phase = "Succeeded"
+		r.Status().Update(ctx, &job)
+		return ctrl.Result{}, nil
+	}
+
+	if job.Spec.Automata.Run == nil {
+		if err := RunStep(&data, &job.Spec.Step[utils.JobSet[uid].RunIndex]); err != nil {
+			return ctrl.Result{}, err
+		}
+	} else {
+		stepName, exists := job.Spec.Automata.Run[utils.JobSet[uid].RunIndex]["step"]
+		if exists {
+			RunStep(&data, &job.Spec.Step[utils.JobSet[uid].StepSet[stepName]])
+		} // else {
+		// 	loopName, loop := job.Spec.Automata.Run[utils.JobSet[uid].RunIndex]["loop"]
+		// 	if exists {
+		// 		RunLoop(&data, &job.Spec.Step[utils.JobSet[uid].StepSet[stepName]])
+		// 	}
+		// }
+	}
 
 	return ctrl.Result{}, nil
 }

@@ -2,9 +2,13 @@ package watchers
 
 import (
 	"fmt"
-	corev1 "k8s.io/api/core/v1"
+
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
+	corev1 "k8s.io/api/core/v1"
+
+	"github.com/faithByte/kaas/internal/controller/utils"
 )
 
 const APIVersion = "faithbyte.kaas/v1"
@@ -28,7 +32,7 @@ var PodPredicate = predicate.Funcs{
 		}
 		fmt.Println("Create pod " + e.Object.GetName())
 
-		return true
+		return false
 	},
 	UpdateFunc: func(e event.UpdateEvent) bool {
 		var uid = ""
@@ -42,16 +46,23 @@ var PodPredicate = predicate.Funcs{
 		new := e.ObjectNew.(*corev1.Pod)
 
 		if old.Status.Phase != new.Status.Phase {
-			fmt.Println(new.Status.Phase)
+			if new.Status.Phase == "Running" {
+				fmt.Println(e.ObjectNew.GetName() + " is Running")
+
+				utils.AddRunningPod(uid, new.Status.PodIP, new.Labels["resources"])
+				if utils.JobSet[uid].Status == utils.ComputesCreated {
+					return true
+				}
+			} else if (new.Status.Phase == "Succeeded") && (new.Labels["type"] == "launcher") {
+				println("utils.JobSet[uid].Status = utils.Completed")
+				utils.JobSet[uid].Status = utils.Completed
+				utils.JobSet[uid].RunIndex += 1
+				return true
+			}
 		}
 		return false
 	},
 	DeleteFunc: func(e event.DeleteEvent) bool {
-		var uid = ""
-		if uid = isOwnedByMe(e.Object.(*corev1.Pod)); uid == "" {
-			return false
-		}
-
 		fmt.Println("Delete pod " + e.Object.GetName())
 
 		return false
