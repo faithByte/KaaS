@@ -25,44 +25,73 @@ type JobData struct {
 	Scheme  *runtime.Scheme
 }
 
-type Data struct {
-	Index    int
-	Hostfile string
-}
+type Status int8
+
+const (
+	NotStarted       Status = 0
+	ComputesCreating Status = 1
+	ComputesCreated  Status = 2
+	Launched         Status = 3
+	Completed        Status = 4
+)
 
 type JobSetData struct {
+	RunIndex int
+	RunLen   int
+
 	Step     string
 	Needed   int
 	Started  int
-	launched bool
+	Status   Status
 	Hostfile string
+
+	StepSet map[string]int
+	LoopSet map[string]int
 }
 
-var jobSet = make(map[string]*JobSetData)
+var JobSet = make(map[string]*JobSetData)
+
+func NewStep(uid string, name string, index int) {
+	JobSet[uid].StepSet[name] = index
+}
+
+func NewLoop(uid string, name string, index int) {
+	JobSet[uid].LoopSet[name] = index
+}
 
 func AddJob(uid string) {
-	jobSet[uid] = new(JobSetData)
+	JobSet[uid] = new(JobSetData)
+	JobSet[uid].StepSet = make(map[string]int)
+	JobSet[uid].LoopSet = make(map[string]int)
 }
 
 func RemoveJob(uid string) {
-	delete(jobSet, uid)
-	println(jobSet)
+	delete(JobSet, uid)
+	println(JobSet)
 }
 
 func JobExists(uid string) bool {
-	_, job := jobSet[uid]
+	_, job := JobSet[uid]
 	return job
 }
 
 func JobStartStep(uid string, stepName string, podsNeeded int) {
-	jobSet[uid].Step = stepName
-	jobSet[uid].Needed = podsNeeded
-	jobSet[uid].Started = 0
-	jobSet[uid].launched = false
-	jobSet[uid].Hostfile = ""
+	JobSet[uid].Step = stepName
+	JobSet[uid].Needed = podsNeeded
+	JobSet[uid].Started = 0
+	JobSet[uid].Status = ComputesCreating
+	JobSet[uid].Hostfile = ""
 }
 
 func AddRunningPod(uid string, ip string, resources string) {
-	jobSet[uid].Started += 1
-	jobSet[uid].Hostfile += "\n" + ip + " slots=" + resources
+	JobSet[uid].Started += 1
+	JobSet[uid].Hostfile += ip + " slots=" + resources + "\n"
+
+	if JobSet[uid].Started == JobSet[uid].Needed {
+		JobSet[uid].Status = ComputesCreated
+	}
 }
+
+// func UpdateJobStatus(){
+
+// }

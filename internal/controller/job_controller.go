@@ -58,6 +58,10 @@ func (r *JobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		}
 	}
 
+	if (job.Spec.Automata.Run == nil) && (job.Spec.Step == nil) {
+		return ctrl.Result{}, nil
+	}
+
 	data := utils.JobData{
 		Job:     job,
 		Client:  r.Client,
@@ -65,54 +69,46 @@ func (r *JobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		Scheme:  r.Scheme,
 	}
 
-	job.Status.Phase = "Creating dependencies"
-	r.Status().Update(ctx, &job)
+	uid := string(job.GetUID())
+	if !utils.JobExists(uid) {
+		utils.AddJob(string(job.GetUID()))
 
-	if !utils.JobExists(string(job.GetUID())) {
-		fmt.Println("Creaaaaaaaaaaaaaaaaaaate")
-		// Create ssh secrete
+		job.Status.Phase = "Creating dependencies"
+		r.Status().Update(ctx, &job)
+
 		if err := secrets.CreateSshSecret(&data); err != nil {
 			utils.Log.Error(err, "COULDN'T CREATE SSH SECRET")
 			return ctrl.Result{}, err
 		}
-		utils.AddJob(string(job.GetUID()))
 
-		if len(job.Spec.Automata.Run) > 0 {
-			// index name ==============================================
-			StepSet := make(map[string]utils.Data)
-			for i, step := range job.Spec.Step {
-				StepSet[step.Name] = utils.Data{Index: i}
-			}
-			LoopSet := make(map[string]int)
-			for i, loop := range job.Spec.Automata.Loop {
-				LoopSet[loop.Name] = i
-			}
-			// =========================================================
-
-			for _, j := range job.Spec.Automata.Run {
-				stepName, step := j["step"]
-				if step {
-					RunStep(&data, &job.Spec.Step[StepSet[stepName].Index])
-				} else {
-					_, loop := j["loop"]
-					// loopName, loop := j["loop"]
-					if !loop {
-						continue
-					}
-					// RunLoop(&data, &job.Spec.Step[LoopSet[loopName]])
-				}
-			}
-		} else {
-			for _, step := range job.Spec.Step {
-				RunStep(&data, &step)
-			}
+		if err := secrets.CreateHostfile(&data); err != nil {
+			utils.Log.Error(err, "COULDN'T CREATE HOSTFILE SECRET")
+			return ctrl.Result{}, err
 		}
-
-	} else {
-		fmt.Println("HEEEEEEEEEEEEEEEEEERRRRE")
-
 	}
-	utils.Log.Info("Done")
+
+	if utils.JobSet[uid].RunIndex >= utils.JobSet[uid].RunLen {
+		job.Status.Phase = "Succeeded"
+		r.Status().Update(ctx, &job)
+		return ctrl.Result{}, nil
+	}
+
+	if job.Spec.Automata.Run == nil {
+		if err := RunStep(&data, &job.Spec.Step[utils.JobSet[uid].RunIndex]); err != nil {
+			return ctrl.Result{}, err
+		}
+	} else {
+		stepName, exists := job.Spec.Automata.Run[utils.JobSet[uid].RunIndex]["step"]
+		if exists {
+			RunStep(&data, &job.Spec.Step[utils.JobSet[uid].StepSet[stepName]])
+		} // else {
+		// 	loopName, loop := job.Spec.Automata.Run[utils.JobSet[uid].RunIndex]["loop"]
+		// 	if exists {
+		// 		RunLoop(&data, &job.Spec.Step[utils.JobSet[uid].StepSet[stepName]])
+		// 	}
+		// }
+	}
+
 	return ctrl.Result{}, nil
 }
 

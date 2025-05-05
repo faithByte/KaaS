@@ -45,19 +45,24 @@ var PodPredicate = predicate.Funcs{
 
 		new := e.ObjectNew.(*corev1.Pod)
 
-		if (old.Status.Phase != new.Status.Phase) && (new.Status.Phase == "Running") {
-			fmt.Println(e.ObjectNew.GetName() + " is Running")
-			utils.AddRunningPod(uid, new.Status.PodIP, new.Labels["resources"])
-			return true
+		if old.Status.Phase != new.Status.Phase {
+			if new.Status.Phase == "Running" {
+				fmt.Println(e.ObjectNew.GetName() + " is Running")
+
+				utils.AddRunningPod(uid, new.Status.PodIP, new.Labels["resources"])
+				if utils.JobSet[uid].Status == utils.ComputesCreated {
+					return true
+				}
+			} else if (new.Status.Phase == "Succeeded") && (new.Labels["type"] == "launcher") {
+				println("utils.JobSet[uid].Status = utils.Completed")
+				utils.JobSet[uid].Status = utils.Completed
+				utils.JobSet[uid].RunIndex += 1
+				return true
+			}
 		}
 		return false
 	},
 	DeleteFunc: func(e event.DeleteEvent) bool {
-		var uid = ""
-		if uid = isOwnedByMe(e.Object.(*corev1.Pod)); uid == "" {
-			return false
-		}
-
 		fmt.Println("Delete pod " + e.Object.GetName())
 
 		return false
