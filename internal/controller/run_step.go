@@ -16,6 +16,11 @@ func RunStep(jobData *utils.JobData, step *kaasv1.StepData) error {
 
 	uid := string(jobData.Job.GetUID())
 	status := utils.JobSet[uid].Status
+
+	if status == utils.Completed {
+		jobData.Client.List(jobData.Context, &corev1.PodList{}, client.MatchingLabels{"type": "compute"})
+	}
+
 	if (status == utils.NotStarted) || (status == utils.Completed) {
 		utils.JobStartStep(uid, step.Name, podsNeeded)
 

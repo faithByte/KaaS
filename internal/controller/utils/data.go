@@ -51,23 +51,10 @@ type JobSetData struct {
 
 var JobSet = make(map[string]*JobSetData)
 
-func NewStep(uid string, name string, index int) {
-	JobSet[uid].StepSet[name] = index
-}
-
-func NewLoop(uid string, name string, index int) {
-	JobSet[uid].LoopSet[name] = index
-}
-
 func AddJob(uid string) {
 	JobSet[uid] = new(JobSetData)
 	JobSet[uid].StepSet = make(map[string]int)
 	JobSet[uid].LoopSet = make(map[string]int)
-}
-
-func RemoveJob(uid string) {
-	delete(JobSet, uid)
-	println(JobSet)
 }
 
 func JobExists(uid string) bool {
@@ -90,6 +77,10 @@ func AddRunningPod(uid string, ip string, resources string) {
 	if JobSet[uid].Started == JobSet[uid].Needed {
 		JobSet[uid].Status = ComputesCreated
 	}
+}
+
+func RemoveJob(uid string) {
+	delete(JobSet, uid)
 }
 
 // func UpdateJobStatus(){

@@ -46,10 +46,10 @@ func CreateLauncher(jobData *utils.JobData, step *kaasv1.StepData) error {
 				Env:     step.Environment,
 				// ImagePullPolicy: corev1.PullAlways,
 				VolumeMounts: []corev1.VolumeMount{
-					{
-						Name:      "data",
-						MountPath: "/data",
-					},
+					// {
+					// 	Name:      "data",
+					// 	MountPath: "/data",
+					// },
 					{
 						Name:      "hostfile-volume",
 						MountPath: "/hosts",
@@ -61,14 +61,14 @@ func CreateLauncher(jobData *utils.JobData, step *kaasv1.StepData) error {
 				},
 			}},
 			Volumes: []corev1.Volume{
-				{
-					Name: "data",
-					VolumeSource: corev1.VolumeSource{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: "shared-volume-rw",
-						},
-					},
-				},
+				// {
+				// 	Name: "data",
+				// 	VolumeSource: corev1.VolumeSource{
+				// 		PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				// 			ClaimName: "shared-volume-rw",
+				// 		},
+				// 	},
+				// },
 				{
 					Name: "hostfile-volume",
 					VolumeSource: corev1.VolumeSource{

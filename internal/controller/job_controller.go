@@ -85,6 +85,21 @@ func (r *JobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 			utils.Log.Error(err, "COULDN'T CREATE HOSTFILE SECRET")
 			return ctrl.Result{}, err
 		}
+
+		// index name ==============================================
+		for i, step := range job.Spec.Step {
+			utils.JobSet[uid].StepSet[step.Name] = i
+		}
+		for i, loop := range job.Spec.Automata.Loop {
+			utils.JobSet[uid].LoopSet[loop.Name] = i
+		}
+		// =========================================================
+
+		if job.Spec.Automata.Run == nil {
+			utils.JobSet[uid].RunLen = len(job.Spec.Step)
+		} else {
+			utils.JobSet[uid].RunLen = len(job.Spec.Automata.Run)
+		}
 	}
 
 	if utils.JobSet[uid].RunIndex >= utils.JobSet[uid].RunLen {
