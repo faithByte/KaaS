@@ -1,0 +1,35 @@
+package jobs
+
+import (
+	kaasv1 "github.com/faithByte/kaas/api/v1"
+
+	"github.com/faithByte/kaas/internal/controller/interfaces"
+	"github.com/faithByte/kaas/internal/controller/types"
+	"github.com/faithByte/kaas/internal/controller/utils"
+)
+
+func StartStepType(uid string, step *kaasv1.StepData) interfaces.Type {
+	switch step.Type {
+	case "shared_mem":
+		jobs[uid].Step = types.NewsharedMemoryStep(step, &step.Needs)
+	case "distributed_mem":
+		jobs[uid].Step = types.NewDistributedMemoryStep(step, &step.Needs)
+	case "hybrid_mem":
+		jobs[uid].Step = types.NewHybridMemoryStep(step, &step.Needs)
+	}
+	return jobs[uid].Step
+}
+
+func GetStepType(uid string) interfaces.Type {
+	return jobs[uid].Step
+}
+
+func UpdateStepStatus(uid string, status utils.Status) {
+	if Exists(uid) {
+		jobs[uid].Step.SetStatus(status)
+	}
+}
+
+func GetStepIndex(uid string, name string) int {
+	return jobs[uid].StepSet[name]
+}
