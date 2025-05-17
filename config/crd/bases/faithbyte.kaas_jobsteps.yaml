@@ -89,8 +89,28 @@ spec:
                   type: object
                 type: array
               email:
-                pattern: ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$
-                type: string
+                description: Email
+                properties:
+                  email:
+                    pattern: ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$
+                    type: string
+                  for:
+                    default: all
+                    enum:
+                    - all
+                    - job
+                    - step
+                    type: string
+                  type:
+                    default: all
+                    enum:
+                    - all
+                    - success
+                    - error
+                    type: string
+                required:
+                - email
+                type: object
               step:
                 items:
                   description: STEP

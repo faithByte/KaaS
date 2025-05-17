@@ -9,8 +9,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/faithByte/kaas/internal/controller/interfaces"
 	"github.com/faithByte/kaas/internal/controller/utils"
+	"github.com/faithByte/kaas/internal/controller/utils/interfaces"
 )
 
 func DeleteComputes(uid, stepName string, data utils.ReconcilerData) {

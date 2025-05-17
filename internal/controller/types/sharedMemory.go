@@ -9,22 +9,23 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	enum "github.com/faithByte/kaas/internal/controller/utils/enums"
 	"github.com/faithByte/kaas/internal/controller/pods"
 	"github.com/faithByte/kaas/internal/controller/utils"
 )
 
 type sharedMemory struct {
 	step       *kaasv1.StepData
-	status     utils.Status
+	status     enum.Status
 	cpusNumber string
 }
 
-func (data *sharedMemory) SetStatus(status utils.Status) {
+func (data *sharedMemory) SetStatus(status enum.Status) {
 	data.status = status
 }
 
 func (data *sharedMemory) Run(reconcilerData utils.ReconcilerData) error {
-	if (data.status == utils.Completed) || (data.status == utils.Error) {
+	if (data.status == enum.Completed) || (data.status == enum.Error) {
 		return nil
 	}
 
@@ -60,7 +61,7 @@ func (data *sharedMemory) Run(reconcilerData utils.ReconcilerData) error {
 }
 
 func (data *sharedMemory) AddRunningPod(ip, resources string) bool {
-	data.status = utils.Launched
+	data.status = enum.Launched
 	return true
 }
 
@@ -77,7 +78,7 @@ func (data *sharedMemory) GetResources() corev1.ResourceRequirements {
 	}
 }
 
-func (data *sharedMemory) GetStatus() utils.Status {
+func (data *sharedMemory) GetStatus() enum.Status {
 	return data.status
 }
 

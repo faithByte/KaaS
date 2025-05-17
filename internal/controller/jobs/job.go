@@ -5,7 +5,7 @@ import (
 
 	kaasv1 "github.com/faithByte/kaas/api/v1"
 
-	"github.com/faithByte/kaas/internal/controller/interfaces"
+	interfaces "github.com/faithByte/kaas/internal/controller/utils/interfaces"
 	"github.com/faithByte/kaas/internal/controller/utils"
 )
 

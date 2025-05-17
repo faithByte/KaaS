@@ -19,7 +19,7 @@ package controller
 import (
 	"context"
 	// "fmt"
-	"os"
+	// "os"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,6 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	enum "github.com/faithByte/kaas/internal/controller/utils/enums"
 	"github.com/faithByte/kaas/internal/controller/jobs"
 	"github.com/faithByte/kaas/internal/controller/secrets"
 	"github.com/faithByte/kaas/internal/controller/utils"
@@ -106,7 +107,7 @@ func (r *JobStepsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	stepType.Run(reconcilerData)
 
-	if stepType.GetStatus() == utils.Completed {
+	if stepType.GetStatus() == enum.Completed {
 		jobs.IncrementProgress(reconcilerData)
 	}
 
@@ -115,7 +116,7 @@ func (r *JobStepsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *JobStepsReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	utils.EmailSender.New(os.Getenv("MAIL"))
+	// utils.EmailSender.New(os.Getenv("MAIL"))
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kaasv1.JobSteps{}, builder.WithPredicates(watchers.JobPredicate)).

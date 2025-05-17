@@ -9,29 +9,30 @@ import (
 
 	"github.com/faithByte/kaas/internal/controller/pods"
 	"github.com/faithByte/kaas/internal/controller/utils"
+	enum "github.com/faithByte/kaas/internal/controller/utils/enums"
 )
 
 type distributedMemory struct {
 	step     *kaasv1.StepData
 	needed   int
 	started  int
-	status   utils.Status
+	status   enum.Status
 	hostfile string
 }
 
-func (data *distributedMemory) SetStatus(status utils.Status) {
+func (data *distributedMemory) SetStatus(status enum.Status) {
 	data.status = status
 }
 
 func (data *distributedMemory) Run(reconcilerData utils.ReconcilerData) error {
 	uid := string(reconcilerData.Job.GetUID())
-	if data.status == utils.NotStarted {
+	if data.status == enum.NotStarted {
 		for i := range data.needed {
 			if err := pods.Create(reconcilerData, pods.GetComputePod(reconcilerData, data, i)); err != nil {
 				return err
 			}
 		}
-	} else if data.status == utils.ComputesCreated {
+	} else if data.status == enum.ComputesCreated {
 
 		var hostfile corev1.Secret
 		err := reconcilerData.Client.Get(reconcilerData.Context, client.ObjectKey{Namespace: utils.MY_NAMESPACE, Name: "hosts-" + uid}, &hostfile)
@@ -51,8 +52,8 @@ func (data *distributedMemory) Run(reconcilerData utils.ReconcilerData) error {
 		if err := pods.Create(reconcilerData, pods.GetLauncherPod(reconcilerData, data)); err != nil {
 			return err
 		}
-		data.status = utils.Launched
-	} else if data.status == utils.Completed {
+		data.status = enum.Launched
+	} else if data.status == enum.Completed {
 		pods.DeleteComputes(uid, data.step.Name, reconcilerData)
 	}
 	return nil
@@ -63,7 +64,7 @@ func (data *distributedMemory) AddRunningPod(ip, resources string) bool {
 	data.hostfile += ip + " slots=" + resources + "\n"
 
 	if data.started == data.needed {
-		data.status = utils.ComputesCreated
+		data.status = enum.ComputesCreated
 		return true
 	}
 	return false
@@ -82,7 +83,7 @@ func (data *distributedMemory) GetResources() corev1.ResourceRequirements {
 	}
 }
 
-func (data *distributedMemory) GetStatus() utils.Status {
+func (data *distributedMemory) GetStatus() enum.Status {
 	return data.status
 }
 
