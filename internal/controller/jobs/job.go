@@ -1,6 +1,8 @@
 package jobs
 
 import (
+	"fmt"
+
 	kaasv1 "github.com/faithByte/kaas/api/v1"
 
 	"github.com/faithByte/kaas/internal/controller/interfaces"
@@ -18,7 +20,7 @@ var jobs = make(map[string]*JobData)
 
 // INIT JOB
 func New(uid string, data *utils.ReconcilerData) bool {
-	job := data.Job
+	job := &data.Job
 	isDistributed := false
 
 	jobs[uid] = new(JobData)
@@ -44,13 +46,15 @@ func New(uid string, data *utils.ReconcilerData) bool {
 	}
 
 	job.Status.Phase = "Starting"
-	data.Client.Status().Update(data.Context, &job)
+	job.Status.Progress = 0
+	data.Job.Status.ProgressPerTotal = fmt.Sprintf("%d/%d", data.Job.Status.Progress, data.Job.Status.Total)
+	data.Client.Status().Update(data.Context, job)
 	return isDistributed
 }
 
 // JOB SETTERS
 func UpdateStatus(status string, data utils.ReconcilerData) {
-	data.Job.Status.Phase = "Succeeded"
+	data.Job.Status.Phase = status
 	data.Client.Status().Update(data.Context, &data.Job)
 }
 
@@ -58,6 +62,7 @@ func IncrementProgress(data utils.ReconcilerData) {
 	jobs[string(data.Job.GetUID())].Step = nil
 
 	data.Job.Status.Progress++
+	data.Job.Status.ProgressPerTotal = fmt.Sprintf("%d/%d", data.Job.Status.Progress, data.Job.Status.Total)
 	data.Client.Status().Update(data.Context, &data.Job)
 }
 
@@ -68,6 +73,9 @@ func Exists(uid string) bool {
 }
 
 func IsDone(jobStatus kaasv1.JobStepsStatus) bool {
+	if jobStatus.Total == 0 {
+		return false
+	}
 	return jobStatus.Progress >= jobStatus.Total
 }
 

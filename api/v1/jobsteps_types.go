@@ -86,12 +86,14 @@ type JobStepsStatus struct {
 	Total int `json:"total,omitempty"`
 	// +kubebuilder:default=0
 	Progress int `json:"progress,omitempty"`
+
+	ProgressPerTotal string `json:"progresspertotal,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="STATUS",type=string,JSONPath=".status.phase"
-// +kubebuilder:printcolumn:name="Progress",type=number,JSONPath=".status.progress"
+// +kubebuilder:printcolumn:name="Steps Progress",type=string,JSONPath=".status.progresspertotal"
 
 // JOBSTEPS
 type JobSteps struct {

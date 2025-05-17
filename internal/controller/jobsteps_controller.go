@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	// "fmt"
 	"os"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -70,6 +71,7 @@ func (r *JobStepsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	uid := string(job.GetUID())
+
 	if !jobs.Exists(uid) {
 		isMpi := jobs.New(uid, &reconcilerData)
 		if isMpi {
@@ -80,7 +82,7 @@ func (r *JobStepsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	if jobs.IsDone(job.Status) {
 		jobs.Delete(uid)
-		jobs.UpdateStatus("Succeeded", reconcilerData)
+		jobs.UpdateStatus("Completed", reconcilerData)
 		return ctrl.Result{}, nil
 	}
 

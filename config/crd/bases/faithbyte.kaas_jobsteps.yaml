@@ -18,9 +18,9 @@ spec:
     - jsonPath: .status.phase
       name: STATUS
       type: string
-    - jsonPath: .status.progress
-      name: Progress
-      type: number
+    - jsonPath: .status.progresspertotal
+      name: Steps Progress
+      type: string
     name: v1
     schema:
       openAPIV3Schema:
@@ -2113,6 +2113,8 @@ spec:
               progress:
                 default: 0
                 type: integer
+              progresspertotal:
+                type: string
               total:
                 default: 0
                 type: integer
