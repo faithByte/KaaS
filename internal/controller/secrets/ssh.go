@@ -51,11 +51,11 @@ func generateSshKey() (string, string, error) {
 	return prvKey, pubKey, nil
 }
 
-func CreateSshSecret(jobData *utils.JobData) error {
-	name := "ssh-" + string(jobData.Job.GetUID())
+func CreateSshSecret(reconcilerData *utils.ReconcilerData) error {
+	name := "ssh-" + string(reconcilerData.Job.GetUID())
 
 	var isCreated corev1.Secret
-	err := jobData.Client.Get(jobData.Context, client.ObjectKey{Namespace: utils.MY_NAMESPACE, Name: name}, &isCreated)
+	err := reconcilerData.Client.Get(reconcilerData.Context, client.ObjectKey{Namespace: utils.MY_NAMESPACE, Name: name}, &isCreated)
 	if err == nil {
 		return errors.NewAlreadyExists(schema.GroupResource{}, "")
 	} else if !errors.IsNotFound(err) {
@@ -78,11 +78,11 @@ func CreateSshSecret(jobData *utils.JobData) error {
 		},
 	}
 
-	if err := ctrl.SetControllerReference(&jobData.Job, secret, jobData.Scheme); err != nil {
+	if err := ctrl.SetControllerReference(&reconcilerData.Job, secret, reconcilerData.Scheme); err != nil {
 		return err
 	}
 
-	if err := jobData.Client.Create(jobData.Context, secret); err != nil {
+	if err := reconcilerData.Client.Create(reconcilerData.Context, secret); err != nil {
 		return err
 	}
 
