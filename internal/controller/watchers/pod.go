@@ -8,11 +8,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/faithByte/kaas/internal/controller/jobs"
 	"github.com/faithByte/kaas/internal/controller/utils"
 )
 
 const APIVersion = "faithbyte.kaas/v1"
-const KIND = "Job"
+const KIND = "JobSteps"
 
 func isOwnedByMe(pod *corev1.Pod) string {
 	ref := pod.OwnerReferences[0]
@@ -46,17 +47,13 @@ var PodPredicate = predicate.Funcs{
 		new := e.ObjectNew.(*corev1.Pod)
 
 		if old.Status.Phase != new.Status.Phase {
-			if new.Status.Phase == "Running" {
-				fmt.Println(e.ObjectNew.GetName() + " is Running")
-
-				utils.AddRunningPod(uid, new.Status.PodIP, new.Labels["resources"])
-				if utils.JobSet[uid].Status == utils.ComputesCreated {
-					return true
+			if (new.Status.Phase == "Running") && (new.Labels["type"] == "compute") {
+				return jobs.GetStepType(uid).AddRunningPod(new.Status.PodIP, "1")
+			} else if new.Status.Phase == "Succeeded" {
+				println("pod Completed")
+				if (new.Labels["type"] == "launcher") || (new.Labels["type"] == "main") {
+					jobs.UpdateStepStatus(uid, utils.Completed)
 				}
-			} else if (new.Status.Phase == "Succeeded") && (new.Labels["type"] == "launcher") {
-				println("utils.JobSet[uid].Status = utils.Completed")
-				utils.JobSet[uid].Status = utils.Completed
-				utils.JobSet[uid].RunIndex += 1
 				return true
 			}
 		}
