@@ -7,7 +7,7 @@ rules:
 - apiGroups:
   - faithbyte.kaas
   resources:
-  - jobs
+  - jobsteps
   verbs:
   - create
   - delete
@@ -19,13 +19,13 @@ rules:
 - apiGroups:
   - faithbyte.kaas
   resources:
-  - jobs/finalizers
+  - jobsteps/finalizers
   verbs:
   - update
 - apiGroups:
   - faithbyte.kaas
   resources:
-  - jobs/status
+  - jobsteps/status
   verbs:
   - get
   - patch

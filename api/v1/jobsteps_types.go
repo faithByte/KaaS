@@ -23,22 +23,28 @@ import (
 
 // STEP - NEEDS
 type NeedsData struct {
-	Ntasks        int `json:"ntasks,omitempty"`
-	CpusPerTask   int `json:"cpus-per-task,omitempty"`
-	Nodes         int `json:"nodes,omitempty"`
+	// +kubebuilder:default=1
+	CpusPerTask int `json:"cpus-per-task,omitempty"`
+	// +kubebuilder:default=1
+	Nodes int `json:"nodes,omitempty"`
+	// +kubebuilder:default=1
 	NtasksPerNode int `json:"ntasks-per-node,omitempty"`
 }
 
 // STEP
 type StepData struct {
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 	Name string `json:"name"`
 	// +kubebuilder:validation:Enum=shared_mem;distributed_mem;hybrid_mem
-	Type         string            `json:"type"`
-	Image        string            `json:"image"`
-	Needs        NeedsData         `json:"needs,omitempty"`
-	Command      string            `json:"command"`
-	Environment  []corev1.EnvVar   `json:"environment,omitempty"`
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	Type         string               `json:"type"`
+	Image        string               `json:"image"`
+	Needs        NeedsData            `json:"needs,omitempty"`
+	Command      string               `json:"command"`
+	Environment  []corev1.EnvVar      `json:"environment,omitempty"`
+	NodeSelector map[string]string    `json:"nodeSelector,omitempty"`
+	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
+	// +kubebuilder:default=false
+	IgnoreError bool `json:"ignore_errors,omitempty"`
 }
 
 // AUTOMATA - LOOP
@@ -61,40 +67,49 @@ type ConditionData struct {
 	Command string `json:"command"`
 }
 
-// JOB - SPEC
-type JobSpec struct {
+// JOBSTEPS - SPEC
+type JobStepsSpec struct {
 	Step      []StepData      `json:"step"`
 	Condition []ConditionData `json:"condition,omitempty"`
 	Automata  AutomataData    `json:"automata,omitempty"`
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$`
+	Email   string          `json:"email,omitempty"`
+	Volumes []corev1.Volume `json:"volumes,omitempty"`
 }
 
-// JOB - STATUS
-type JobStatus struct {
+// JOBSTEPS - STATUS
+type JobStepsStatus struct {
 	Phase   string `json:"phase,omitempty"`
 	PodName string `json:"PodName,omitempty"`
+
+	// +kubebuilder:default=0
+	Total int `json:"total,omitempty"`
+	// +kubebuilder:default=0
+	Progress int `json:"progress,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="STATUS",type=string,JSONPath=".status.phase"
+// +kubebuilder:printcolumn:name="Progress",type=number,JSONPath=".status.progress"
 
-// JOB
-type Job struct {
+// JOBSTEPS
+type JobSteps struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   JobSpec   `json:"spec,omitempty"`
-	Status JobStatus `json:"status,omitempty"`
+	Spec   JobStepsSpec   `json:"spec,omitempty"`
+	Status JobStepsStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-type JobList struct {
+type JobStepsList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Job `json:"items"`
+	Items           []JobSteps `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Job{}, &JobList{})
+	SchemeBuilder.Register(&JobSteps{}, &JobStepsList{})
 }

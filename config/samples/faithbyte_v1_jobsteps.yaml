@@ -1,9 +1,9 @@
 apiVersion: faithbyte.kaas/v1
-kind: Job
+kind: JobSteps
 metadata:
   labels:
     app.kubernetes.io/name: kaas-controller
     app.kubernetes.io/managed-by: kustomize
-  name: job-sample
+  name: jobsteps-sample
 spec:
   # TODO(user): Add fields here

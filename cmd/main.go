@@ -202,11 +202,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.JobReconciler{
+	if err = (&controller.JobStepsReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Job")
+		setupLog.Error(err, "unable to create controller", "controller", "JobSteps")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

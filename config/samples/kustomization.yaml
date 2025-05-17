@@ -1,4 +1,4 @@
 ## Append samples of your project ##
 resources:
-- faithbyte_v1_job.yaml
+- faithbyte_v1_jobsteps.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

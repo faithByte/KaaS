@@ -11,17 +11,17 @@ metadata:
   labels:
     app.kubernetes.io/name: kaas-controller
     app.kubernetes.io/managed-by: kustomize
-  name: job-admin-role
+  name: jobsteps-admin-role
 rules:
 - apiGroups:
   - faithbyte.kaas
   resources:
-  - jobs
+  - jobsteps
   verbs:
   - '*'
 - apiGroups:
   - faithbyte.kaas
   resources:
-  - jobs/status
+  - jobsteps/status
   verbs:
   - get
