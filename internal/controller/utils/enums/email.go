@@ -1,17 +1,10 @@
 package enum
 
-type EmailFor int8
+type EmailFor string
 
 const (
-	Both EmailFor = 0
-	Job  EmailFor = 1
-	Step EmailFor = 2
-)
-
-type EmailType int8
-
-const (
-	All     EmailType = 0
-	SUCCESS EmailType = 1
-	ERROR   EmailType = 2
+	None EmailFor = ""
+	Job  EmailFor = "job"
+	Step EmailFor = "step"
+	Both EmailFor = "all"
 )

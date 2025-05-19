@@ -13,7 +13,7 @@ func NewDistributedMemoryStep(step *kaasv1.StepData, needs *kaasv1.NeedsData) *d
 		step:     step,
 		needed:   needs.Nodes * needs.NtasksPerNode,
 		started:  0,
-		status:   enum.NotStarted,
+		phase:    enum.NotStarted,
 		hostfile: "",
 	}
 }
@@ -29,6 +29,6 @@ func NewsharedMemoryStep(step *kaasv1.StepData, needs *kaasv1.NeedsData) *shared
 	return &sharedMemory{
 		step:       step,
 		cpusNumber: strconv.Itoa(needs.CpusPerTask),
-		status:     enum.NotStarted,
+		phase:      enum.NotStarted,
 	}
 }

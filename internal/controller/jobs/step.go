@@ -3,8 +3,8 @@ package jobs
 import (
 	kaasv1 "github.com/faithByte/kaas/api/v1"
 
-	enum "github.com/faithByte/kaas/internal/controller/utils/enums"
 	"github.com/faithByte/kaas/internal/controller/types"
+	enum "github.com/faithByte/kaas/internal/controller/utils/enums"
 	"github.com/faithByte/kaas/internal/controller/utils/interfaces"
 )
 
@@ -24,9 +24,9 @@ func GetStepType(uid string) interfaces.Type {
 	return jobs[uid].Step
 }
 
-func UpdateStepStatus(uid string, status enum.Status) {
+func UpdateStepPhase(uid string, phase enum.Phase) {
 	if Exists(uid) {
-		jobs[uid].Step.SetStatus(status)
+		jobs[uid].Step.SetPhase(phase)
 	}
 }
 

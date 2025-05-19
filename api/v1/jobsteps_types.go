@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	enum "github.com/faithByte/kaas/internal/controller/utils/enums"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -67,14 +68,24 @@ type ConditionData struct {
 	Command string `json:"command"`
 }
 
+// Email
+type EmailData struct {
+	Email string `json:"email"`
+	// +kubebuilder:validation:Enum=all;success;error
+	// +kubebuilder:default=all
+	Status string `json:"type,omitempty"`
+	// +kubebuilder:validation:Enum=all;job;step
+	// +kubebuilder:default=all
+	For enum.EmailFor `json:"for,omitempty"`
+}
+
 // JOBSTEPS - SPEC
 type JobStepsSpec struct {
 	Step      []StepData      `json:"step"`
 	Condition []ConditionData `json:"condition,omitempty"`
 	Automata  AutomataData    `json:"automata,omitempty"`
-	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$`
-	Email   string          `json:"email,omitempty"`
-	Volumes []corev1.Volume `json:"volumes,omitempty"`
+	Email     EmailData       `json:"email,omitempty"`
+	Volumes   []corev1.Volume `json:"volumes,omitempty"`
 }
 
 // JOBSTEPS - STATUS

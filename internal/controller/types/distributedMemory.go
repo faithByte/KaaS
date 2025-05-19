@@ -16,23 +16,24 @@ type distributedMemory struct {
 	step     *kaasv1.StepData
 	needed   int
 	started  int
-	status   enum.Status
+	phase    enum.Phase
 	hostfile string
+	podName  string
 }
 
-func (data *distributedMemory) SetStatus(status enum.Status) {
-	data.status = status
+func (data *distributedMemory) SetPhase(phase enum.Phase) {
+	data.phase = phase
 }
 
 func (data *distributedMemory) Run(reconcilerData utils.ReconcilerData) error {
 	uid := string(reconcilerData.Job.GetUID())
-	if data.status == enum.NotStarted {
+	if data.phase == enum.NotStarted {
 		for i := range data.needed {
 			if err := pods.Create(reconcilerData, pods.GetComputePod(reconcilerData, data, i)); err != nil {
 				return err
 			}
 		}
-	} else if data.status == enum.ComputesCreated {
+	} else if data.phase == enum.ComputesCreated {
 
 		var hostfile corev1.Secret
 		err := reconcilerData.Client.Get(reconcilerData.Context, client.ObjectKey{Namespace: utils.MY_NAMESPACE, Name: "hosts-" + uid}, &hostfile)
@@ -49,11 +50,13 @@ func (data *distributedMemory) Run(reconcilerData utils.ReconcilerData) error {
 			return err
 		}
 
-		if err := pods.Create(reconcilerData, pods.GetLauncherPod(reconcilerData, data)); err != nil {
+		launcher := pods.GetLauncherPod(reconcilerData, data)
+		if err := pods.Create(reconcilerData, launcher); err != nil {
 			return err
 		}
-		data.status = enum.Launched
-	} else if data.status == enum.Completed {
+		data.podName = launcher.Name
+		data.phase = enum.Launched
+	} else if data.phase == enum.Completed {
 		pods.DeleteComputes(uid, data.step.Name, reconcilerData)
 	}
 	return nil
@@ -64,7 +67,7 @@ func (data *distributedMemory) AddRunningPod(ip, resources string) bool {
 	data.hostfile += ip + " slots=" + resources + "\n"
 
 	if data.started == data.needed {
-		data.status = enum.ComputesCreated
+		data.phase = enum.ComputesCreated
 		return true
 	}
 	return false
@@ -83,8 +86,12 @@ func (data *distributedMemory) GetResources() corev1.ResourceRequirements {
 	}
 }
 
-func (data *distributedMemory) GetStatus() enum.Status {
-	return data.status
+func (data *distributedMemory) GetPhase() enum.Phase {
+	return data.phase
+}
+
+func (data *distributedMemory) GetPodName() string {
+	return data.podName
 }
 
 func (data *distributedMemory) GetStepData() *kaasv1.StepData {

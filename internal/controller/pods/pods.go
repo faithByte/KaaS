@@ -1,6 +1,11 @@
 package pods
 
 import (
+	"fmt"
+	"io"
+	"strings"
+
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
@@ -8,16 +13,6 @@ import (
 
 	"github.com/faithByte/kaas/internal/controller/utils"
 )
-
-func GetOwnersUID(pod *corev1.Pod) string {
-	ref := pod.OwnerReferences[0]
-
-	if ref.APIVersion == utils.APIVersion && ref.Kind == utils.KIND {
-		return string(ref.UID)
-	}
-
-	return ""
-}
 
 func Create(reconcilerData utils.ReconcilerData, pod *corev1.Pod) error {
 	// check if it's already created
@@ -41,4 +36,31 @@ func Create(reconcilerData utils.ReconcilerData, pod *corev1.Pod) error {
 	utils.Log.Info("Creating a new launcher Pod", "Pod.Name", pod.Name)
 
 	return nil
+}
+
+func GetLogs(name, namespace string, r *utils.ReconcilerData) string {
+	config := ctrl.GetConfigOrDie()
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return ""
+	}
+
+	req := clientset.CoreV1().Pods(namespace).GetLogs(name, &corev1.PodLogOptions{})
+	stream, err := req.Stream(r.Context)
+	if err != nil {
+		fmt.Println(fmt.Errorf("%w", err))
+
+		return ""
+	}
+	defer stream.Close()
+
+	var builder strings.Builder
+	_, err = io.Copy(&builder, stream)
+	if err != nil {
+		fmt.Println(fmt.Errorf("%w", err))
+		return ""
+	}
+
+	return builder.String()
 }

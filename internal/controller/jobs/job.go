@@ -5,13 +5,12 @@ import (
 
 	kaasv1 "github.com/faithByte/kaas/api/v1"
 
-	interfaces "github.com/faithByte/kaas/internal/controller/utils/interfaces"
 	"github.com/faithByte/kaas/internal/controller/utils"
+	interfaces "github.com/faithByte/kaas/internal/controller/utils/interfaces"
 )
 
 type JobData struct {
-	Step interfaces.Type
-
+	Step    interfaces.Type
 	StepSet map[string]int
 	LoopSet map[string]int
 }

@@ -8,8 +8,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	enum "github.com/faithByte/kaas/internal/controller/utils/enums"
 	"github.com/faithByte/kaas/internal/controller/jobs"
+	enum "github.com/faithByte/kaas/internal/controller/utils/enums"
 )
 
 const APIVersion = "faithbyte.kaas/v1"
@@ -45,14 +45,13 @@ var PodPredicate = predicate.Funcs{
 		fmt.Println("Update pod " + e.ObjectNew.GetName())
 
 		new := e.ObjectNew.(*corev1.Pod)
-
+		// new.
 		if old.Status.Phase != new.Status.Phase {
 			if (new.Status.Phase == "Running") && (new.Labels["type"] == "compute") {
 				return jobs.GetStepType(uid).AddRunningPod(new.Status.PodIP, "1")
 			} else if new.Status.Phase == "Succeeded" {
-				println("pod Completed")
 				if (new.Labels["type"] == "launcher") || (new.Labels["type"] == "main") {
-					jobs.UpdateStepStatus(uid, enum.Completed)
+					jobs.UpdateStepPhase(uid, enum.Completed)
 				}
 				return true
 			}

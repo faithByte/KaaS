@@ -9,7 +9,6 @@ import (
 	kaasv1 "github.com/faithByte/kaas/api/v1"
 
 	"github.com/faithByte/kaas/internal/controller/jobs"
-	// "github.com/faithByte/kaas/internal/controller/utils"
 )
 
 var JobPredicate = predicate.Funcs{
@@ -23,15 +22,10 @@ var JobPredicate = predicate.Funcs{
 		old := e.ObjectOld.(*kaasv1.JobSteps)
 		new := e.ObjectNew.(*kaasv1.JobSteps)
 
-		if new.Status.Phase == "Completed" {
-			return false
-		}
-
 		if (new.Status.Progress != 0) && (new.Status.Progress != old.Status.Progress) {
 			return true
 		}
 
-		// if new.Status.
 		fmt.Println("Update job " + e.ObjectNew.GetName())
 		return false
 	},

@@ -25,15 +25,6 @@ type ReconcilerData struct {
 	Scheme  *runtime.Scheme
 }
 
-// func isOwnedByMe(obj *metav1.Object, uid string) bool {
-// 	controller := metav1.GetControllerOf(*obj)
-
-// 	if string(controller.UID) == uid {
-// 		return true
-// 	}
-// 	return false
-// }
-
 func GetPodsOwnerUID(pod *corev1.Pod) string {
 	ref := pod.OwnerReferences[0]
 

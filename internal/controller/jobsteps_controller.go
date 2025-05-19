@@ -19,7 +19,7 @@ package controller
 import (
 	"context"
 	// "fmt"
-	// "os"
+	"os"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,10 +31,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	enum "github.com/faithByte/kaas/internal/controller/utils/enums"
 	"github.com/faithByte/kaas/internal/controller/jobs"
 	"github.com/faithByte/kaas/internal/controller/secrets"
 	"github.com/faithByte/kaas/internal/controller/utils"
+	enum "github.com/faithByte/kaas/internal/controller/utils/enums"
+	"github.com/faithByte/kaas/internal/controller/utils/mail"
 	"github.com/faithByte/kaas/internal/controller/watchers"
 )
 
@@ -46,7 +47,9 @@ type JobStepsReconciler struct {
 // +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobsteps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobsteps/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobsteps/finalizers,verbs=update
+// func stepIsDone(uid string, stepType interfaces.Type) {
 
+// }
 func (r *JobStepsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	utils.Log = log.FromContext(ctx)
 
@@ -74,16 +77,21 @@ func (r *JobStepsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	uid := string(job.GetUID())
 
 	if !jobs.Exists(uid) {
-		isMpi := jobs.New(uid, &reconcilerData)
-		if isMpi {
+		isDistributed := jobs.New(uid, &reconcilerData)
+		if isDistributed {
 			secrets.CreateSshSecret(&reconcilerData)
 			secrets.CreateHostfile(&reconcilerData)
 		}
+		mail.NewMessage(uid, job.Spec.Email.Email)
 	}
 
 	if jobs.IsDone(job.Status) {
 		jobs.Delete(uid)
 		jobs.UpdateStatus("Completed", reconcilerData)
+
+		mail.Messages[uid].JobEndedMessage(&job)
+		delete(mail.Messages, uid)
+
 		return ctrl.Result{}, nil
 	}
 
@@ -107,8 +115,20 @@ func (r *JobStepsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	stepType.Run(reconcilerData)
 
-	if stepType.GetStatus() == enum.Completed {
+	if stepType.GetPhase() == enum.Completed {
+		mail.Messages[uid].StepMessage(&job, stepType, reconcilerData)
 		jobs.IncrementProgress(reconcilerData)
+	} else if stepType.GetPhase() == enum.Error {
+		mail.Messages[uid].StepMessage(&job, stepType, reconcilerData)
+
+		if !stepType.GetStepData().IgnoreError {
+			jobs.Delete(uid)
+			jobs.UpdateStatus("Error", reconcilerData)
+			mail.Messages[uid].JobEndedMessage(&job)
+			delete(mail.Messages, uid)
+		} else {
+			jobs.IncrementProgress(reconcilerData)
+		}
 	}
 
 	return ctrl.Result{}, nil
@@ -116,7 +136,7 @@ func (r *JobStepsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *JobStepsReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// utils.EmailSender.New(os.Getenv("MAIL"))
+	mail.EmailSender.NewEmail(os.Getenv("MAIL"))
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kaasv1.JobSteps{}, builder.WithPredicates(watchers.JobPredicate)).

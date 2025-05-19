@@ -59,10 +59,10 @@ func GetLauncherPod(reconcilerData utils.ReconcilerData, data interfaces.Type) *
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{{
-				Name:  step.Name,
+				Name:  name,
 				Image: step.Image,
 				Command: []string{"sh", "-c",
-					"cp /mnt/ssh/ssh-pubkey ~/.ssh/id_rsa.pub && cp /mnt/ssh/ssh-prvkey ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa && chmod 644 ~/.ssh/id_rsa.pub && service ssh start && mpirun --hostfile /hosts/hostfile " + step.Command},
+					"cp /mnt/ssh/ssh-pubkey ~/.ssh/id_rsa.pub && cp /mnt/ssh/ssh-prvkey ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa && chmod 644 ~/.ssh/id_rsa.pub && service ssh start 1>/dev/null && mpirun --hostfile /hosts/hostfile " + step.Command},
 				Env: step.Environment,
 				// ImagePullPolicy: corev1.PullAlways,
 				Resources:    data.GetResources(),

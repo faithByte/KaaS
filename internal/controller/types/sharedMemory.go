@@ -6,34 +6,35 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	kaasv1 "github.com/faithByte/kaas/api/v1"
+	enum "github.com/faithByte/kaas/internal/controller/utils/enums"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	enum "github.com/faithByte/kaas/internal/controller/utils/enums"
 	"github.com/faithByte/kaas/internal/controller/pods"
 	"github.com/faithByte/kaas/internal/controller/utils"
 )
 
 type sharedMemory struct {
 	step       *kaasv1.StepData
-	status     enum.Status
+	phase      enum.Phase
 	cpusNumber string
+	podName    string
 }
 
-func (data *sharedMemory) SetStatus(status enum.Status) {
-	data.status = status
+func (data *sharedMemory) SetPhase(phase enum.Phase) {
+	data.phase = phase
 }
 
 func (data *sharedMemory) Run(reconcilerData utils.ReconcilerData) error {
-	if (data.status == enum.Completed) || (data.status == enum.Error) {
+	if (data.phase == enum.Completed) || (data.phase == enum.Error) {
 		return nil
 	}
 
-	name := fmt.Sprintf("%s-%s", reconcilerData.Job.Name, data.step.Name)
+	data.podName = fmt.Sprintf("%s-%s", reconcilerData.Job.Name, data.step.Name)
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      data.podName,
 			Namespace: reconcilerData.Job.Namespace,
 			Labels: map[string]string{
 				"type": "main",
@@ -61,7 +62,7 @@ func (data *sharedMemory) Run(reconcilerData utils.ReconcilerData) error {
 }
 
 func (data *sharedMemory) AddRunningPod(ip, resources string) bool {
-	data.status = enum.Launched
+	data.phase = enum.Launched
 	return true
 }
 
@@ -78,8 +79,12 @@ func (data *sharedMemory) GetResources() corev1.ResourceRequirements {
 	}
 }
 
-func (data *sharedMemory) GetStatus() enum.Status {
-	return data.status
+func (data *sharedMemory) GetPhase() enum.Phase {
+	return data.phase
+}
+
+func (data *sharedMemory) GetPodName() string {
+	return data.podName
 }
 
 func (data *sharedMemory) GetStepData() *kaasv1.StepData {
