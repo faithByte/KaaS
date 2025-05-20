@@ -82,16 +82,14 @@ func (r *JobStepsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			secrets.CreateSshSecret(&reconcilerData)
 			secrets.CreateHostfile(&reconcilerData)
 		}
-		mail.NewMessage(uid, job.Spec.Email.Email)
+		mail.NewMessage(uid, job.Spec)
 	}
 
 	if jobs.IsDone(job.Status) {
 		jobs.Delete(uid)
 		jobs.UpdateStatus("Completed", reconcilerData)
 
-		mail.Messages[uid].JobEndedMessage(&job)
-		delete(mail.Messages, uid)
-
+		go mail.JobEmail(job)
 		return ctrl.Result{}, nil
 	}
 
@@ -116,16 +114,15 @@ func (r *JobStepsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	stepType.Run(reconcilerData)
 
 	if stepType.GetPhase() == enum.Completed {
-		mail.Messages[uid].StepMessage(&job, stepType, reconcilerData)
+		go mail.Messages[uid].StepMessage(job, stepType, reconcilerData)
 		jobs.IncrementProgress(reconcilerData)
 	} else if stepType.GetPhase() == enum.Error {
-		mail.Messages[uid].StepMessage(&job, stepType, reconcilerData)
+		go mail.Messages[uid].StepMessage(job, stepType, reconcilerData)
 
 		if !stepType.GetStepData().IgnoreError {
 			jobs.Delete(uid)
 			jobs.UpdateStatus("Error", reconcilerData)
-			mail.Messages[uid].JobEndedMessage(&job)
-			delete(mail.Messages, uid)
+			go mail.JobEmail(job)
 		} else {
 			jobs.IncrementProgress(reconcilerData)
 		}

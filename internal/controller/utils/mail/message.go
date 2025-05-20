@@ -15,39 +15,59 @@ import (
 )
 
 type Message struct {
-	message  *gomail.Message
-	jobBody  string
-	stepBody string
+	jobBody          string
+	runningProcesses utils.AtomicCounter
 }
 
 var Messages = make(map[string]*Message)
 
-func NewMessage(uid, email string) {
+func NewMessage(uid string, jobSpec kaasv1.JobStepsSpec) {
+	if jobSpec.Email.For == enum.None {
+		return
+	}
 	Messages[uid] = new(Message)
-	Messages[uid].NewMessage(email)
+	Messages[uid].jobBody = "<html>\n<body>\n"
 }
 
-func (data *Message) NewMessage(email string) error {
-	if data.message == nil {
-		data.message = gomail.NewMessage()
+func (data *Message) NewMessage(email string) *gomail.Message {
+	message := gomail.NewMessage()
+	message.SetHeader("From", EmailSender.email)
+	message.SetHeader("To", email)
+	return message
+}
+
+func JobEmail(job kaasv1.JobSteps) {
+	if job.Spec.Email.For == enum.None {
+		return
 	}
-	data.message.SetHeader("From", EmailSender.email)
-	data.message.SetHeader("To", email)
-	data.jobBody += "<html>\n<body>\n"
-	return nil
-}
 
-func (data *Message) JobEndedMessage(job *kaasv1.JobSteps) error {
+	uid := string(job.GetUID())
+
+	for Messages[uid].runningProcesses.Value() != 0 {
+	}
+
 	if (job.Spec.Email.For != enum.Both) && (job.Spec.Email.For != enum.Job) {
-		return nil
+		delete(Messages, uid)
+		return
 	}
-	data.message.SetHeader("Subject", fmt.Sprintf("Job <%s> ended", job.Name))
-	data.jobBody += "\n</body>\n</html>"
-	data.message.SetBody("text/html", data.jobBody)
-	return EmailSender.Send(data.message)
+	Messages[uid].jobEndedMessage(job)
+	delete(Messages, uid)
 }
 
-func (data *Message) StepMessage(job *kaasv1.JobSteps, stepType interfaces.Type, r utils.ReconcilerData) error {
+func (data *Message) jobEndedMessage(job kaasv1.JobSteps) {
+	// protected on JobEmail
+	message := data.NewMessage(job.Spec.Email.Email)
+	message.SetHeader("Subject", fmt.Sprintf("Job <%s> ended", job.Name))
+	data.jobBody += "\n</body>\n</html>"
+	message.SetBody("text/html", data.jobBody)
+	EmailSender.Send(message)
+}
+
+func (data *Message) StepMessage(job kaasv1.JobSteps, stepType interfaces.Type, r utils.ReconcilerData) {
+	if job.Spec.Email.For == enum.None {
+		return
+	}
+	data.runningProcesses.Increment()
 	step := stepType.GetStepData()
 	body := ""
 
@@ -57,16 +77,18 @@ func (data *Message) StepMessage(job *kaasv1.JobSteps, stepType interfaces.Type,
 		data.jobBody += fmt.Sprintf("<h1>Step %s: </h1>\n<p>%s</p><hr>", step.Name, body)
 	}
 
-	if (job.Spec.Email.For != enum.Both) && (job.Spec.Email.For != enum.Step) {
-		return nil
-	}
-
 	if body == "" {
 		body = pods.GetLogs(stepType.GetPodName(), job.Namespace, &r)
 		body = strings.ReplaceAll(body, "\n", "<br />")
 	}
 
-	data.message.SetHeader("Subject", fmt.Sprintf("Step <%s> ended successffuly", step.Name))
-	data.message.SetBody("text/html", fmt.Sprintf("<html>\n<body>\n<h1>%s logs:</h1>\n<p>%s</p>\n</body>\n</html>", step.Name, body))
-	return EmailSender.Send(data.message)
+	message := data.NewMessage(job.Spec.Email.Email)
+	if stepType.GetPhase() == enum.Completed {
+		message.SetHeader("Subject", fmt.Sprintf("Step <%s> ended successffuly", step.Name))
+	} else {
+		message.SetHeader("Subject", fmt.Sprintf("Step <%s> failed", step.Name))
+	}
+	message.SetBody("text/html", fmt.Sprintf("<html>\n<body>\n<h1>%s logs:</h1>\n<p>%s</p>\n</body>\n</html>", step.Name, body))
+	EmailSender.Send(message)
+	data.runningProcesses.Decrement()
 }
