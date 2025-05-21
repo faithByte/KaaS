@@ -3,15 +3,16 @@ package types
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kaasv1 "github.com/faithByte/kaas/api/v1"
-	enum "github.com/faithByte/kaas/internal/controller/utils/enums"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/faithByte/kaas/internal/controller/pods"
 	"github.com/faithByte/kaas/internal/controller/utils"
+	enum "github.com/faithByte/kaas/internal/controller/utils/enums"
 )
 
 type sharedMemory struct {
@@ -30,7 +31,20 @@ func (data *sharedMemory) Run(reconcilerData utils.ReconcilerData) error {
 		return nil
 	}
 
+	var isCreated corev1.Pod
 	data.podName = fmt.Sprintf("%s-%s", reconcilerData.Job.Name, data.step.Name)
+	err := reconcilerData.Client.Get(reconcilerData.Context, client.ObjectKey{Namespace: reconcilerData.Job.Namespace, Name: data.podName}, &isCreated)
+
+	i := 1
+	for err == nil {
+		data.podName = fmt.Sprintf("%s-%s-%d", reconcilerData.Job.Name, data.step.Name, i)
+		err = reconcilerData.Client.Get(reconcilerData.Context, client.ObjectKey{Namespace: reconcilerData.Job.Namespace, Name: data.podName}, &isCreated)
+		i++
+	}
+
+	if !errors.IsNotFound(err) {
+		return err
+	}
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{

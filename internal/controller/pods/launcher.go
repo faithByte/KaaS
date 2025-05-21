@@ -4,17 +4,33 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/faithByte/kaas/internal/controller/utils"
 	"github.com/faithByte/kaas/internal/controller/utils/interfaces"
 )
 
-func GetLauncherPod(reconcilerData utils.ReconcilerData, data interfaces.Type) *corev1.Pod {
+func GetLauncherPod(reconcilerData utils.ReconcilerData, data interfaces.Type) (*corev1.Pod, error) {
 
 	// uid := string(reconcilerData.Job.GetUID())
 	step := data.GetStepData()
+
+	var isCreated corev1.Pod
 	name := fmt.Sprintf("%s-%s-launcher", reconcilerData.Job.Name, step.Name)
+	err := reconcilerData.Client.Get(reconcilerData.Context, client.ObjectKey{Namespace: reconcilerData.Job.Namespace, Name: name}, &isCreated)
+
+	i := 1
+	for err == nil {
+		name = fmt.Sprintf("%s-%s-launcher-%d", reconcilerData.Job.Name, step.Name, i)
+		err = reconcilerData.Client.Get(reconcilerData.Context, client.ObjectKey{Namespace: reconcilerData.Job.Namespace, Name: name}, &isCreated)
+		i++
+	}
+
+	if !errors.IsNotFound(err) {
+		return nil, err
+	}
 
 	volumes := append(reconcilerData.Job.Spec.Volumes,
 		[]corev1.Volume{
@@ -72,5 +88,5 @@ func GetLauncherPod(reconcilerData utils.ReconcilerData, data interfaces.Type) *
 			NodeSelector:  step.NodeSelector,
 			RestartPolicy: corev1.RestartPolicyNever,
 		},
-	}
+	}, nil
 }

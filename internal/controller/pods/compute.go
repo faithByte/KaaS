@@ -3,6 +3,7 @@ package pods
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -23,9 +24,24 @@ func DeleteComputes(uid, stepName string, data utils.ReconcilerData) {
 	data.Client.DeleteAllOf(data.Context, &corev1.Pod{}, labelSelector, namespaceSelector)
 }
 
-func GetComputePod(reconcilerData utils.ReconcilerData, data interfaces.Type, index int) *corev1.Pod {
-
+func GetComputePod(reconcilerData utils.ReconcilerData, data interfaces.Type, index int) (*corev1.Pod, error) {
+	uid := string(reconcilerData.Job.GetUID())
 	step := data.GetStepData()
+
+	var isCreated corev1.Pod
+	name := fmt.Sprintf("%s-%s-compute-%d", reconcilerData.Job.Name, step.Name, index)
+	err := reconcilerData.Client.Get(reconcilerData.Context, client.ObjectKey{Namespace: reconcilerData.Job.Namespace, Name: name}, &isCreated)
+
+	i := 1
+	for err == nil {
+		name := fmt.Sprintf("%s-%s-compute-%d-%d", reconcilerData.Job.Name, step.Name, index, i)
+		err = reconcilerData.Client.Get(reconcilerData.Context, client.ObjectKey{Namespace: reconcilerData.Job.Namespace, Name: name}, &isCreated)
+		i++
+	}
+
+	if !errors.IsNotFound(err) {
+		return nil, err
+	}
 
 	volumes := append(reconcilerData.Job.Spec.Volumes,
 		[]corev1.Volume{
@@ -50,10 +66,10 @@ func GetComputePod(reconcilerData utils.ReconcilerData, data interfaces.Type, in
 
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%s-compute-%d", reconcilerData.Job.Name, step.Name, index),
+			Name:      name,
 			Namespace: utils.MY_NAMESPACE,
 			Labels: map[string]string{
-				"job":  string(reconcilerData.Job.GetUID()),
+				"job":  uid,
 				"type": "compute",
 				"step": step.Name,
 			},
@@ -74,5 +90,5 @@ func GetComputePod(reconcilerData utils.ReconcilerData, data interfaces.Type, in
 			RestartPolicy:                 corev1.RestartPolicyNever,
 			TerminationGracePeriodSeconds: pointer.Int64(0),
 		},
-	}
+	}, nil
 }

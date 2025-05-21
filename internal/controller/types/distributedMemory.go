@@ -1,12 +1,11 @@
 package types
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kaasv1 "github.com/faithByte/kaas/api/v1"
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/faithByte/kaas/internal/controller/pods"
 	"github.com/faithByte/kaas/internal/controller/utils"
 	enum "github.com/faithByte/kaas/internal/controller/utils/enums"
@@ -29,7 +28,11 @@ func (data *distributedMemory) Run(reconcilerData utils.ReconcilerData) error {
 	uid := string(reconcilerData.Job.GetUID())
 	if data.phase == enum.NotStarted {
 		for i := range data.needed {
-			if err := pods.Create(reconcilerData, pods.GetComputePod(reconcilerData, data, i)); err != nil {
+			compute, err := pods.GetComputePod(reconcilerData, data, i)
+			if err != nil {
+				return err
+			}
+			if err = pods.Create(reconcilerData, compute); err != nil {
 				return err
 			}
 		}
@@ -50,8 +53,11 @@ func (data *distributedMemory) Run(reconcilerData utils.ReconcilerData) error {
 			return err
 		}
 
-		launcher := pods.GetLauncherPod(reconcilerData, data)
-		if err := pods.Create(reconcilerData, launcher); err != nil {
+		launcher, err := pods.GetLauncherPod(reconcilerData, data)
+		if err != nil {
+			return err
+		}
+		if err = pods.Create(reconcilerData, launcher); err != nil {
 			return err
 		}
 		data.podName = launcher.Name
