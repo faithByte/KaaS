@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"k8s.io/client-go/tools/record"
 
 	kaasv1 "github.com/faithByte/kaas/api/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -42,6 +43,8 @@ import (
 type JobStepsReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	SchedulerRecorder  record.EventRecorder
+	ControllerRecorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=faithbyte.kaas,resources=jobsteps,verbs=get;list;watch;create;update;patch;delete
