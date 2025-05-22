@@ -8,7 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	kaasv1 "github.com/faithByte/kaas/api/v1"
-	corev1 "k8s.io/api/core/v1"
+	// corev1 "k8s.io/api/core/v1"
 	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,11 +25,11 @@ type ReconcilerData struct {
 	Scheme  *runtime.Scheme
 }
 
-func GetPodsOwnerUID(pod *corev1.Pod) string {
-	ref := pod.OwnerReferences[0]
-
-	if ref.APIVersion == APIVersion && ref.Kind == KIND {
-		return string(ref.UID)
-	}
-	return ""
+func KeyExistInMap(key string, m map[string]interface{}) bool {
+	_, exist := m[key]
+	return exist
 }
+
+// func ValueExistInMap() {
+
+// }

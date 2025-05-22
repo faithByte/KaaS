@@ -203,9 +203,9 @@ func main() {
 	}
 
 	if err = (&controller.JobStepsReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		SchedulerRecorder: mgr.GetEventRecorderFor("kaas-scheduler"),
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		SchedulerRecorder:  mgr.GetEventRecorderFor("kaas-scheduler"),
 		ControllerRecorder: mgr.GetEventRecorderFor("kaas-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "JobSteps")

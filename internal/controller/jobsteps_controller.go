@@ -23,10 +23,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"k8s.io/client-go/tools/record"
 
 	kaasv1 "github.com/faithByte/kaas/api/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -42,7 +42,7 @@ import (
 
 type JobStepsReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme             *runtime.Scheme
 	SchedulerRecorder  record.EventRecorder
 	ControllerRecorder record.EventRecorder
 }
@@ -141,6 +141,7 @@ func (r *JobStepsReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kaasv1.JobSteps{}, builder.WithPredicates(watchers.JobPredicate)).
 		Owns(&corev1.Pod{}, builder.WithPredicates(watchers.PodPredicate)).
+		Owns(&corev1.Node{}, builder.WithPredicates(watchers.NodePredicate)).
 		Named("jobsteps").
 		Complete(r)
 }

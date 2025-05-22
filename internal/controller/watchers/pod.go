@@ -63,4 +63,8 @@ var PodPredicate = predicate.Funcs{
 
 		return false
 	},
+
+	GenericFunc: func(e event.GenericEvent) bool {
+		return false
+	},
 }
