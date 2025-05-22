@@ -63,8 +63,8 @@ func NewNode(node *corev1.Node) {
 		newNode = SecondaryNodeList[name]
 	}
 
-	newNode.name = node.Name
-	newNode.labels = node.Labels
+	newNode.name = node.GetName()
+	newNode.labels = node.GetLabels()
 	newNode.node = node
 	newNode.score = score
 }
