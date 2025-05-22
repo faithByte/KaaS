@@ -7,7 +7,7 @@ import (
 )
 
 func UpdateNode(old, update *corev1.Node) {
-	name := update.Name
+	name := update.GetName()
 
 	if !(reflect.DeepEqual(old.Spec.Taints, update.Spec.Taints)) || !(reflect.DeepEqual(old.Status.Conditions, update.Status.Conditions)) {
 		var newNode *Node
@@ -18,7 +18,7 @@ func UpdateNode(old, update *corev1.Node) {
 			return
 		}
 
-		// lock scheduler 
+		// lock scheduler
 		n, score = isSchedulable(update.Spec.Taints, update.Status.Conditions, update.Spec.Unschedulable)
 
 		switch n {

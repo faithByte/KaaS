@@ -7,8 +7,8 @@ import (
 type Node struct {
 	name   string
 	labels map[string]string
-	score int8
-	node  *corev1.Node
+	score  int8
+	node   *corev1.Node
 }
 
 var PrimaryNodeList = make(map[string]*Node)

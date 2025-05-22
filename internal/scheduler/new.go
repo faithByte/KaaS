@@ -14,7 +14,7 @@ import (
 func isSchedulable(taints []corev1.Taint, conditions []corev1.NodeCondition, unschedulable bool) (int8, int8) {
 	var score int8 = 0
 
-	if (unschedulable) {
+	if unschedulable {
 		return 0, 0
 	}
 
@@ -47,7 +47,7 @@ func isSchedulable(taints []corev1.Taint, conditions []corev1.NodeCondition, uns
 }
 
 func NewNode(node *corev1.Node) {
-	name := node.Name
+	name := node.GetName()
 	var newNode *Node
 
 	n, score := isSchedulable(node.Spec.Taints, node.Status.Conditions, node.Spec.Unschedulable)
